@@ -1,0 +1,19 @@
+{
+  "name": "Webflow SEO Alt Text Tool",
+  "description": "Internal SaaS tool to generate and apply SEO-friendly alt text for Webflow CMS items using AI",
+  "version": "0.1.0",
+  "architecture": {
+    "backend": "FastAPI (Python 3.11+)",
+    "frontend": "React + Tailwind",
+    "queue": "Celery + Redis",
+    "database": "Azure Cosmos DB"
+  },
+  "key_principles": [
+    "Security first - no PII storage",
+    "Opt-in defaults - users explicitly enable changes",
+    "Idempotent operations - safe to retry",
+    "Test-driven development"
+  ],
+  "current_phase": "Phase 1.1 - Project Setup",
+  "next_steps": "See docs/step-by-step-guide.md"
+}
