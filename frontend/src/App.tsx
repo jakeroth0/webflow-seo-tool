@@ -7,16 +7,49 @@ interface HealthStatus {
   service: string
 }
 
+interface CMSItem {
+  id: string
+  name: string
+  image_url: string | null
+  current_alt_text: string | null
+  current_caption: string | null
+}
+
+interface CMSItemsResponse {
+  items: CMSItem[]
+  total: number
+  has_more: boolean
+}
+
 function App() {
   const [health, setHealth] = useState<HealthStatus | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [items, setItems] = useState<CMSItem[]>([])
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     fetch('/health')
       .then((res) => res.json())
       .then(setHealth)
-      .catch(() => setError('Backend not reachable. Start it with: uvicorn app.main:app --reload'))
+      .catch(() =>
+        setError(
+          'Backend not reachable. Start it with: uvicorn app.main:app --reload'
+        )
+      )
   }, [])
+
+  const loadItems = async () => {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/v1/items?collection_id=test123')
+      const data: CMSItemsResponse = await res.json()
+      setItems(data.items)
+    } catch (err) {
+      console.error('Failed to load items:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -97,21 +130,79 @@ function App() {
               </dl>
             </div>
 
-            {/* Placeholder for Items */}
+            {/* Items */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-2">
-                CMS Items
-              </h2>
-              <p className="text-sm text-gray-500">
-                Items from your Webflow collection will appear here once the
-                items endpoint is connected.
-              </p>
-              <div className="mt-4 border-2 border-dashed border-gray-200 rounded-lg p-12 text-center">
-                <p className="text-gray-400">No items loaded yet</p>
-                <p className="text-xs text-gray-300 mt-1">
-                  Phase 2 will connect this to GET /api/v1/items
-                </p>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-900">
+                  CMS Items
+                </h2>
+                <button
+                  onClick={loadItems}
+                  disabled={loading}
+                  className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {loading ? 'Loading...' : 'Load Items'}
+                </button>
               </div>
+
+              {items.length === 0 ? (
+                <div className="border-2 border-dashed border-gray-200 rounded-lg p-12 text-center">
+                  <p className="text-gray-400">
+                    No items loaded yet. Click "Load Items" to fetch from API.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {items.map((item) => (
+                    <div
+                      key={item.id}
+                      className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex items-start gap-4">
+                        {item.image_url && (
+                          <img
+                            src={item.image_url}
+                            alt={item.current_alt_text || 'No alt text'}
+                            className="w-24 h-24 object-cover rounded-md border border-gray-200"
+                          />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-sm font-medium text-gray-900">
+                            {item.name}
+                          </h3>
+                          <p className="mt-1 text-xs text-gray-500">
+                            ID: {item.id}
+                          </p>
+                          <div className="mt-2 space-y-1">
+                            <div>
+                              <span className="text-xs font-medium text-gray-700">
+                                Current alt text:
+                              </span>
+                              <p className="text-xs text-gray-600">
+                                {item.current_alt_text || (
+                                  <span className="italic text-gray-400">
+                                    None
+                                  </span>
+                                )}
+                              </p>
+                            </div>
+                            {item.current_caption && (
+                              <div>
+                                <span className="text-xs font-medium text-gray-700">
+                                  Caption:
+                                </span>
+                                <p className="text-xs text-gray-600">
+                                  {item.current_caption}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
