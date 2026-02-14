@@ -58,6 +58,7 @@ function App() {
   const [generating, setGenerating] = useState(false)
   const [currentJob, setCurrentJob] = useState<JobResponse | null>(null)
   const [proposals, setProposals] = useState<Proposal[]>([])
+  const [editedProposals, setEditedProposals] = useState<Map<string, string>>(new Map())
 
   useEffect(() => {
     fetch('/health')
@@ -149,6 +150,7 @@ function App() {
     setGenerating(true)
     setCurrentJob(null)
     setProposals([])
+    setEditedProposals(new Map())
 
     try {
       const res = await fetch('/api/v1/generate', {
@@ -173,6 +175,16 @@ function App() {
       setGenerating(false)
       alert('Failed to start generation. Please try again.')
     }
+  }
+
+  const updateProposal = (proposalId: string, newText: string) => {
+    const newEdited = new Map(editedProposals)
+    newEdited.set(proposalId, newText)
+    setEditedProposals(newEdited)
+  }
+
+  const getProposalText = (proposal: Proposal) => {
+    return editedProposals.get(proposal.proposal_id) ?? proposal.proposed_alt_text
   }
 
   return (
@@ -407,15 +419,31 @@ function App() {
                                     {/* Proposed alt text */}
                                     {proposal && (
                                       <div className="pt-2 border-t border-gray-200">
-                                        <p className="text-xs font-medium text-green-700 mb-1">
-                                          Proposed:
-                                        </p>
-                                        <div className="text-xs text-gray-900 line-clamp-3 bg-green-50 p-2 rounded">
-                                          {proposal.proposed_alt_text}
+                                        <div className="flex items-center justify-between mb-1">
+                                          <p className="text-xs font-medium text-green-700">
+                                            Proposed:
+                                          </p>
+                                          {editedProposals.has(proposal.proposal_id) && (
+                                            <span className="text-xs text-orange-600 italic">
+                                              edited
+                                            </span>
+                                          )}
                                         </div>
-                                        <p className="text-xs text-gray-400 mt-1">
-                                          by {proposal.model_used}
-                                        </p>
+                                        <textarea
+                                          value={getProposalText(proposal)}
+                                          onChange={(e) => updateProposal(proposal.proposal_id, e.target.value)}
+                                          className="w-full text-xs text-gray-900 bg-green-50 p-2 rounded border border-green-200 focus:border-green-400 focus:ring-1 focus:ring-green-400 outline-none resize-none"
+                                          rows={3}
+                                          maxLength={150}
+                                        />
+                                        <div className="flex items-center justify-between mt-1">
+                                          <p className="text-xs text-gray-400">
+                                            by {proposal.model_used}
+                                          </p>
+                                          <p className="text-xs text-gray-400">
+                                            {getProposalText(proposal).length}/150
+                                          </p>
+                                        </div>
                                       </div>
                                     )}
                                   </div>
