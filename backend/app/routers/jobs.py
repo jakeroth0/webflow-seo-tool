@@ -1,5 +1,13 @@
 from fastapi import APIRouter, HTTPException, BackgroundTasks
-from app.models import CreateJobRequest, JobResponse, JobStatus, JobProgress, Proposal
+from app.models import (
+    CreateJobRequest,
+    JobResponse,
+    JobStatus,
+    JobProgress,
+    Proposal,
+    ApplyProposalRequest,
+    ApplyProposalResponse,
+)
 from app.services.openai_client import AltTextGenerator, MockAltTextGenerator
 from app.services.webflow_client import WebflowClient, MockWebflowClient
 from app.config import settings
@@ -7,6 +15,7 @@ import uuid
 from datetime import datetime
 import logging
 import asyncio
+from collections import defaultdict
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1", tags=["jobs"])
@@ -228,3 +237,69 @@ async def get_job_proposals(job_id: str):
         "proposals": [p.model_dump() for p in proposals],
         "total": len(proposals),
     }
+
+
+@router.post("/apply", response_model=ApplyProposalResponse)
+async def apply_proposals(request: ApplyProposalRequest):
+    """
+    Apply approved alt text proposals to Webflow CMS.
+
+    Groups updates by item_id and applies all field changes per item in a single request.
+    Returns success/failure counts and detailed results.
+    """
+    collection_id = settings.webflow_collection_id
+    if not collection_id:
+        raise HTTPException(
+            status_code=400,
+            detail="WEBFLOW_COLLECTION_ID not configured",
+        )
+
+    webflow_client = get_webflow_client()
+
+    # Group updates by item_id
+    updates_by_item = defaultdict(dict)
+    for update in request.updates:
+        item_id = update["item_id"]
+        field_name = update["field_name"]
+        alt_text = update["alt_text"]
+        updates_by_item[item_id][field_name] = alt_text
+
+    results = []
+    success_count = 0
+    failure_count = 0
+
+    # Apply updates item by item
+    for item_id, field_data in updates_by_item.items():
+        try:
+            logger.info(f"Updating item {item_id} with {len(field_data)} fields")
+            response = await webflow_client.update_item(
+                collection_id=collection_id,
+                item_id=item_id,
+                field_data=field_data,
+            )
+
+            success_count += len(field_data)
+            results.append({
+                "item_id": item_id,
+                "success": True,
+                "fields_updated": list(field_data.keys()),
+                "message": f"Successfully updated {len(field_data)} field(s)",
+            })
+
+        except Exception as e:
+            logger.error(f"Failed to update item {item_id}: {str(e)}")
+            failure_count += len(field_data)
+            results.append({
+                "item_id": item_id,
+                "success": False,
+                "fields_attempted": list(field_data.keys()),
+                "error": str(e),
+            })
+
+    await webflow_client.close()
+
+    return ApplyProposalResponse(
+        success_count=success_count,
+        failure_count=failure_count,
+        results=results,
+    )

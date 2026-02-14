@@ -72,37 +72,47 @@ class WebflowClient:
             logger.error(f"Request error: {str(e)}")
             raise
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=60),
+        retry=retry_if_exception_type(RateLimitError),
+        reraise=True,
+    )
     async def update_item(
         self,
+        collection_id: str,
         item_id: str,
-        alt_text: Optional[str] = None,
-        caption: Optional[str] = None,
+        field_data: dict,
     ) -> dict:
         """
-        Update alt text and/or caption for a CMS item.
+        Update CMS item fields (e.g., alt text fields).
+
+        Args:
+            collection_id: Webflow collection ID
+            item_id: Item ID to update
+            field_data: Dict of field names to values (e.g., {"1-after-alt-text": "New text"})
 
         This is idempotent - safe to retry.
         """
-        fields = {}
-        if alt_text is not None:
-            fields["alt_text"] = alt_text
-        if caption is not None:
-            fields["caption"] = caption
-
         try:
             response = await self.client.patch(
-                f"/collections/items/{item_id}",
-                json={"fields": fields},
+                f"/collections/{collection_id}/items/{item_id}",
+                json={"fieldData": field_data},
             )
 
             if response.status_code == 429:
+                retry_after = int(response.headers.get("Retry-After", 60))
+                logger.warning(f"Rate limit hit updating item. Retrying after {retry_after}s")
                 raise RateLimitError("Webflow rate limit exceeded")
 
             response.raise_for_status()
             return response.json()
 
         except httpx.HTTPStatusError as e:
-            logger.error(f"Failed to update item {item_id}: {e}")
+            logger.error(f"Failed to update item {item_id}: {e.response.status_code}")
+            raise
+        except httpx.RequestError as e:
+            logger.error(f"Request error updating item: {str(e)}")
             raise
 
     async def close(self):
@@ -153,15 +163,15 @@ class MockWebflowClient(WebflowClient):
 
     async def update_item(
         self,
+        collection_id: str,
         item_id: str,
-        alt_text: Optional[str] = None,
-        caption: Optional[str] = None,
+        field_data: dict,
     ) -> dict:
         """Mock update - always succeeds."""
+        logger.info(f"Mock update item {item_id} in collection {collection_id}: {field_data}")
         return {
             "id": item_id,
-            "updated": True,
-            "fields": {"alt_text": alt_text, "caption": caption},
+            "fieldData": field_data,
         }
 
     async def close(self):
