@@ -9,6 +9,7 @@ class Proposal(BaseModel):
     proposal_id: str
     job_id: str
     item_id: str
+    field_name: str = Field(..., description="Image field name (e.g., '1-after')")
     proposed_alt_text: str = Field(..., max_length=150)
     proposed_caption: Optional[str] = None
     confidence_score: float = Field(..., ge=0.0, le=1.0)

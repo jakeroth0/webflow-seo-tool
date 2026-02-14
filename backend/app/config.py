@@ -13,8 +13,9 @@ class Settings(BaseSettings):
     # CORS
     cors_origins: list[str] = ["http://localhost:3000"]
 
-    # External APIs (will populate later)
+    # External APIs
     webflow_api_token: Optional[str] = None
+    webflow_collection_id: Optional[str] = None
     openai_api_key: Optional[str] = None
 
     # Redis (for later phases)

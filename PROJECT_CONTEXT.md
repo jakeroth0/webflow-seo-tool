@@ -19,12 +19,21 @@ Internal web app that:
 - [x] Phase 2.1: Items endpoint GET /api/v1/items (4 tests)
 - [x] Phase 2.2: Job creation POST /api/v1/generate (4 tests)
 - [x] Frontend: Load and display items from API
+- [ ] **Phase 2.3: Real Webflow API integration** ← CURRENT
+- [ ] Phase 2.4: OpenAI integration for alt text generation
+- [ ] Phase 2.5: Frontend generate button + display proposals
 - [ ] Phase 3: Background processing with Celery + Redis
-- [ ] Phase 4: OpenAI integration for alt text generation
+
+## Roadmap
+**Immediate Next Steps:**
+1. Phase 2.3: Connect to real Webflow API (replace mock)
+2. Phase 2.4: Integrate OpenAI to generate alt text
+3. Phase 2.5: Wire up generate button in frontend
+4. Phase 3: Add Redis + Celery for background job processing
 
 ## Active Task
-**Current Step:** Phase 2 Complete - 21 tests passing
-**Next:** Phase 3 - Background job processing (Celery + Redis)
+**Current Step:** Phase 2.3 - Real Webflow API Integration
+**Goal:** Replace MockWebflowClient with real API calls using user's Webflow token
 
 ## Test Summary
 ```
@@ -49,8 +58,16 @@ Internal web app that:
 - [x] OpenAI account with API key
 - [x] Webflow account with test site
 - [x] GitHub repo: https://github.com/jakeroth0/webflow-seo-tool
-- [ ] Redis (needed Phase 3)
-- [ ] Azure Cosmos DB (needed Phase 3)
+- [ ] Redis (Phase 3)
+- [ ] Azure Cosmos DB (Phase 3)
+
+## Environment Variables Needed
+```bash
+# Add to backend/.env
+WEBFLOW_API_TOKEN=your_token_here
+WEBFLOW_COLLECTION_ID=your_collection_id_here
+OPENAI_API_KEY=your_key_here
+```
 
 ## Tech Stack
 - Backend: Python 3.13, FastAPI, Pydantic
