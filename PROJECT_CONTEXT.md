@@ -16,21 +16,34 @@ Internal web app that:
 - [x] Phase 1.5: Webflow API client mock (3 tests)
 - [x] Frontend scaffold: React + Vite + Tailwind CSS
 - [x] Docker configuration: Dockerfiles + docker-compose.yml
-- [ ] Phase 2.1: Items endpoint (GET /api/v1/items)
-- [ ] Phase 2.2: Job creation endpoint (POST /api/v1/generate)
+- [x] Phase 2.1: Items endpoint GET /api/v1/items (4 tests)
+- [x] Phase 2.2: Job creation POST /api/v1/generate (4 tests)
+- [x] Frontend: Load and display items from API
+- [ ] Phase 3: Background processing with Celery + Redis
+- [ ] Phase 4: OpenAI integration for alt text generation
 
 ## Active Task
-**Current Step:** Phase 1 Complete - 13 tests passing
-**Next:** Phase 2 - Core API endpoints + frontend wiring
+**Current Step:** Phase 2 Complete - 21 tests passing
+**Next:** Phase 3 - Background job processing (Celery + Redis)
 
 ## Test Summary
 ```
-13 passed (backend)
+21 passed (backend)
 - test_main.py: 2 (health check, root endpoint)
 - test_models.py: 6 (CMS item, job request, progress, proposal validation)
 - test_config.py: 2 (defaults, env override)
 - test_webflow_client.py: 3 (mock get, mock update, close)
+- test_items_endpoint.py: 4 (list items, pagination, validation)
+- test_jobs_endpoint.py: 4 (create job, get status, validation)
 ```
+
+## Endpoints Available
+- `GET /health` - Health check
+- `GET /` - API info
+- `GET /api/v1/items?collection_id=X` - List CMS items
+- `POST /api/v1/generate` - Create generation job
+- `GET /api/v1/jobs/{job_id}` - Get job status
+- `GET /docs` - Swagger UI
 
 ## Accounts Set Up
 - [x] OpenAI account with API key
@@ -61,3 +74,9 @@ npm run dev                       # http://localhost:3000
 cd backend
 pytest app/tests/ -v
 ```
+
+## What's Working
+- Backend API serving at localhost:8000 with Swagger docs at /docs
+- Frontend UI at localhost:3000 with live API health check
+- "Load Items" button fetches mock CMS items and displays them
+- Job creation endpoint ready (no worker processing yet)
