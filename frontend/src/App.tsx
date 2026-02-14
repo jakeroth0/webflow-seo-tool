@@ -59,6 +59,8 @@ function App() {
   const [currentJob, setCurrentJob] = useState<JobResponse | null>(null)
   const [proposals, setProposals] = useState<Proposal[]>([])
   const [editedProposals, setEditedProposals] = useState<Map<string, string>>(new Map())
+  const [applying, setApplying] = useState(false)
+  const [applyResults, setApplyResults] = useState<any>(null)
 
   useEffect(() => {
     fetch('/health')
@@ -187,6 +189,58 @@ function App() {
     return editedProposals.get(proposal.proposal_id) ?? proposal.proposed_alt_text
   }
 
+  const applyProposals = async () => {
+    if (proposals.length === 0) {
+      alert('No proposals to apply')
+      return
+    }
+
+    // Build updates array with edited text where available
+    const updates = proposals.map((proposal) => ({
+      item_id: proposal.item_id,
+      field_name: proposal.field_name,
+      alt_text: getProposalText(proposal),
+    }))
+
+    setApplying(true)
+    setApplyResults(null)
+
+    try {
+      const res = await fetch('/api/v1/apply', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ updates }),
+      })
+
+      if (!res.ok) {
+        throw new Error('Failed to apply proposals')
+      }
+
+      const results = await res.json()
+      setApplyResults(results)
+
+      if (results.failure_count === 0) {
+        alert(`Successfully applied ${results.success_count} alt text updates!`)
+        // Clear proposals and selections after successful apply
+        setProposals([])
+        setEditedProposals(new Map())
+        setSelectedItems(new Set())
+        setCurrentJob(null)
+      } else {
+        alert(
+          `Applied ${results.success_count} updates with ${results.failure_count} failures. Check details below.`
+        )
+      }
+    } catch (err) {
+      console.error('Failed to apply proposals:', err)
+      alert('Failed to apply proposals. Please try again.')
+    } finally {
+      setApplying(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -281,15 +335,26 @@ function App() {
                     {loading ? 'Loading...' : 'Load Projects'}
                   </button>
                   {items.length > 0 && (
-                    <button
-                      onClick={generateAltText}
-                      disabled={generating || selectedItems.size === 0}
-                      className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      {generating
-                        ? 'Generating...'
-                        : `Generate Alt Text (${selectedItems.size})`}
-                    </button>
+                    <>
+                      <button
+                        onClick={generateAltText}
+                        disabled={generating || selectedItems.size === 0}
+                        className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        {generating
+                          ? 'Generating...'
+                          : `Generate Alt Text (${selectedItems.size})`}
+                      </button>
+                      {proposals.length > 0 && (
+                        <button
+                          onClick={applyProposals}
+                          disabled={applying}
+                          className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          {applying ? 'Applying...' : `Apply All (${proposals.length})`}
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
@@ -314,6 +379,25 @@ function App() {
                       className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                       style={{ width: `${currentJob.progress.percentage}%` }}
                     ></div>
+                  </div>
+                </div>
+              )}
+
+              {/* Apply Results */}
+              {applyResults && applyResults.failure_count > 0 && (
+                <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <h3 className="text-sm font-medium text-yellow-900 mb-2">
+                    Apply Results: {applyResults.success_count} succeeded,{' '}
+                    {applyResults.failure_count} failed
+                  </h3>
+                  <div className="space-y-2">
+                    {applyResults.results
+                      .filter((r: any) => !r.success)
+                      .map((result: any, idx: number) => (
+                        <div key={idx} className="text-xs text-yellow-800">
+                          <span className="font-medium">Item {result.item_id}:</span> {result.error}
+                        </div>
+                      ))}
                   </div>
                 </div>
               )}
