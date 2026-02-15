@@ -104,7 +104,7 @@ async def process_job(job_id: str, collection_id: str, item_ids: list[str]):
                                 proposal_id=str(uuid.uuid4()),
                                 job_id=job_id,
                                 item_id=item_id,
-                                field_name=image_field,
+                                field_name=alt_field,  # Use alt text field name, not image field
                                 proposed_alt_text=generated_alt,
                                 confidence_score=0.9,  # Placeholder
                                 model_used=ai_generator.model,
