@@ -9,7 +9,8 @@ from app.models import (
 )
 from app.services.webflow_client import WebflowClient, MockWebflowClient
 from app.config import settings
-from app.tasks import generate_alt_text_task, jobs_db, proposals_db
+from app.tasks import generate_alt_text_task
+from app.storage import jobs_db, proposals_db
 import uuid
 from datetime import datetime
 import logging
@@ -48,21 +49,21 @@ async def create_generation_job(request: CreateJobRequest):
     # Calculate estimated duration (rough: 3 seconds per item with 4 images)
     estimated_duration = len(request.item_ids) * 12  # 4 images * 3 sec each
 
-    # Create job metadata
+    # Create job metadata (serialize for Redis)
     job = {
         "job_id": job_id,
         "status": JobStatus.QUEUED,
         "collection_id": collection_id,
         "item_ids": request.item_ids,
-        "created_at": datetime.now(),
-        "progress": JobProgress(
-            processed=0,
-            total=len(request.item_ids),
-            percentage=0.0,
-        ),
+        "created_at": datetime.now().isoformat(),
+        "progress": {
+            "processed": 0,
+            "total": len(request.item_ids),
+            "percentage": 0.0,
+        },
     }
 
-    # Store in memory
+    # Store in Redis
     jobs_db[job_id] = job
 
     # Dispatch Celery task for background processing
@@ -73,7 +74,7 @@ async def create_generation_job(request: CreateJobRequest):
     return JobResponse(
         job_id=job_id,
         status=JobStatus.QUEUED,
-        progress=job["progress"],
+        progress=JobProgress(**job["progress"]),
         estimated_duration_seconds=estimated_duration,
     )
 
@@ -93,7 +94,7 @@ async def get_job_status(job_id: str):
     return JobResponse(
         job_id=job_id,
         status=job["status"],
-        progress=job["progress"],
+        progress=JobProgress(**job["progress"]),
         estimated_duration_seconds=None,
     )
 
@@ -115,11 +116,12 @@ async def get_job_proposals(job_id: str):
             detail=f"Job not complete. Current status: {job['status']}",
         )
 
-    proposals = proposals_db.get(job_id, [])
+    # Get proposals from Redis (already serialized as dicts)
+    proposals = proposals_db.get(job_id) or []
 
     return {
         "job_id": job_id,
-        "proposals": [p.model_dump() for p in proposals],
+        "proposals": proposals,
         "total": len(proposals),
     }
 

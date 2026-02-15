@@ -7,13 +7,9 @@ from app.models import JobStatus, JobProgress, Proposal
 from app.services.openai_client import AltTextGenerator, MockAltTextGenerator
 from app.services.webflow_client import WebflowClient, MockWebflowClient
 from app.config import settings
+from app.storage import jobs_db, proposals_db
 
 logger = logging.getLogger(__name__)
-
-# In-memory storage (shared with routers/jobs.py)
-# In future phases, this will be replaced with Redis/Cosmos
-jobs_db = {}
-proposals_db = {}
 
 
 def get_alt_text_generator():
@@ -38,7 +34,10 @@ async def process_job_async(job_id: str, collection_id: str, item_ids: list[str]
     This is the same logic as before, just extracted for Celery.
     """
     try:
-        jobs_db[job_id]["status"] = JobStatus.PROCESSING
+        # Update job status to PROCESSING
+        job_data = jobs_db[job_id]
+        job_data["status"] = JobStatus.PROCESSING
+        jobs_db[job_id] = job_data
         logger.info(f"Starting job {job_id} with {len(item_ids)} items")
 
         webflow_client = get_webflow_client()
@@ -104,29 +103,35 @@ async def process_job_async(job_id: str, collection_id: str, item_ids: list[str]
                             proposals.append(proposal)
 
                 # Update progress
-                jobs_db[job_id]["progress"] = JobProgress(
-                    processed=idx + 1,
-                    total=total,
-                    percentage=((idx + 1) / total) * 100,
-                )
+                job_data = jobs_db[job_id]
+                job_data["progress"] = {
+                    "processed": idx + 1,
+                    "total": total,
+                    "percentage": ((idx + 1) / total) * 100,
+                }
+                jobs_db[job_id] = job_data
 
             except Exception as e:
                 logger.error(f"Error processing item {item_id}: {str(e)}")
                 continue
 
-        # Store proposals
-        proposals_db[job_id] = proposals
+        # Store proposals (serialize Pydantic models to dicts)
+        proposals_db[job_id] = [p.model_dump() for p in proposals]
 
         # Mark job as complete
-        jobs_db[job_id]["status"] = JobStatus.COMPLETED
+        job_data = jobs_db[job_id]
+        job_data["status"] = JobStatus.COMPLETED
+        jobs_db[job_id] = job_data
         logger.info(f"Job {job_id} completed with {len(proposals)} proposals")
 
         await webflow_client.close()
 
     except Exception as e:
         logger.error(f"Job {job_id} failed: {str(e)}")
-        jobs_db[job_id]["status"] = JobStatus.FAILED
-        jobs_db[job_id]["error_message"] = str(e)
+        job_data = jobs_db[job_id]
+        job_data["status"] = JobStatus.FAILED
+        job_data["error_message"] = str(e)
+        jobs_db[job_id] = job_data
 
 
 @celery_app.task(name="app.tasks.generate_alt_text", bind=True)
