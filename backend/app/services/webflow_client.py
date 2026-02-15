@@ -95,7 +95,10 @@ class WebflowClient:
         This is idempotent - safe to retry.
         """
         try:
-            payload = {"fieldData": field_data}
+            payload = {
+                "fieldData": field_data,
+                "isDraft": False,  # Publish the item after updating
+            }
             logger.info(f"Updating item {item_id} with payload: {payload}")
 
             response = await self.client.patch(

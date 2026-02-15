@@ -228,6 +228,8 @@ function App() {
         setEditedProposals(new Map())
         setSelectedItems(new Set())
         setCurrentJob(null)
+        // Reload items to show updated alt text
+        loadItems()
       } else {
         alert(
           `Applied ${results.success_count} updates with ${results.failure_count} failures. Check details below.`
