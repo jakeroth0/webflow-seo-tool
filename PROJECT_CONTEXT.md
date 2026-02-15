@@ -23,19 +23,21 @@ Internal web app that:
 - [x] Phase 2.4: OpenAI Vision integration (gpt-4o-mini)
 - [x] Phase 2.5: Frontend generate button + editable proposals
 - [x] Phase 2.6: Apply proposals to Webflow CMS
-- [ ] **Phase 3: Background processing with Celery + Redis** ← NEXT
+- [x] **Phase 3: Background processing with Celery + Redis**
+- [ ] **Phase 4: Persistent storage with Cosmos DB** ← NEXT
 
 ## Roadmap
 **Immediate Next Steps:**
 1. ✅ Phase 2.3: Connect to real Webflow API (replace mock)
 2. ✅ Phase 2.4: Integrate OpenAI Vision to generate alt text
 3. ✅ Phase 2.5: Wire up generate button in frontend with editable proposals
-4. Phase 2.6: Apply selected proposals to Webflow CMS
-5. Phase 3: Add Redis + Celery for background job processing
+4. ✅ Phase 2.6: Apply selected proposals to Webflow CMS
+5. ✅ Phase 3: Add Redis + Celery for background job processing
+6. Phase 4: Migrate storage to Cosmos DB
 
 ## Active Task
-**Current Step:** Phase 2 Complete! 🎉
-**Next:** Phase 3 - Background processing with Celery + Redis
+**Current Step:** Phase 3 Complete! 🎉
+**Next:** Phase 4 - Persistent storage with Cosmos DB (or test Phase 3 first)
 
 ## Test Summary
 ```
@@ -62,8 +64,8 @@ Internal web app that:
 - [x] OpenAI account with API key
 - [x] Webflow account with test site
 - [x] GitHub repo: https://github.com/jakeroth0/webflow-seo-tool
-- [ ] Redis (Phase 3)
-- [ ] Azure Cosmos DB (Phase 3)
+- [x] Redis (Phase 3) - via Docker
+- [ ] Azure Cosmos DB (Phase 4)
 
 ## Environment Variables Needed
 ```bash
@@ -71,6 +73,7 @@ Internal web app that:
 WEBFLOW_API_TOKEN=your_token_here
 WEBFLOW_COLLECTION_ID=your_collection_id_here
 OPENAI_API_KEY=your_key_here
+REDIS_URL=redis://localhost:6379/0  # Auto-configured in Docker
 ```
 
 ## Tech Stack
@@ -82,10 +85,19 @@ OPENAI_API_KEY=your_key_here
 
 ## How to Run
 ```bash
+# With Docker (recommended - includes Redis + Celery)
+docker-compose up --build
+
+# Or individually:
+
 # Backend
 cd backend
 source venv/bin/activate
 uvicorn app.main:app --reload    # http://localhost:8000
+
+# Celery worker (separate terminal)
+cd backend
+celery -A app.celery_app worker --loglevel=info
 
 # Frontend (separate terminal)
 cd frontend
@@ -102,7 +114,8 @@ pytest app/tests/ -v
 - ✅ Real Webflow API integration with 217 items, 4 images each (1-after through 4-after)
 - ✅ "Load Projects" fetches real CMS items and displays all images with current alt text
 - ✅ Item selection with checkboxes (individual + "Select All")
-- ✅ "Generate Alt Text" button creates jobs and processes in background
+- ✅ **Celery + Redis background job processing** (Phase 3)
+- ✅ "Generate Alt Text" button dispatches Celery tasks
 - ✅ Real-time progress tracking with visual progress bar
 - ✅ OpenAI Vision (gpt-4o-mini) generates SEO-optimized alt text (max 125 chars)
 - ✅ Side-by-side comparison of current vs. AI-generated alt text
@@ -110,3 +123,20 @@ pytest app/tests/ -v
 - ✅ "Apply All" button updates Webflow CMS with approved alt text
 - ✅ Auto-publish items after updating (queues for publish)
 - ✅ UI auto-refreshes to show applied alt text
+
+## Phase 3 Details (Celery + Redis)
+**What Changed:**
+- Added Redis service to docker-compose.yml (alpine image, port 6379)
+- Added Celery worker service to docker-compose.yml
+- Installed celery[redis] and redis packages
+- Created `app/celery_app.py` with Celery configuration
+- Created `app/tasks.py` with `generate_alt_text_task` Celery task
+- Updated `app/routers/jobs.py` to dispatch Celery tasks instead of FastAPI BackgroundTasks
+- Jobs now run in dedicated Celery workers (scalable, persistent, restartable)
+
+**Benefits:**
+- Background jobs survive API server restarts
+- Can scale Celery workers independently
+- Better handling of long-running tasks
+- Task retry and failure handling built-in
+- Foundation for future features (scheduled jobs, batch processing)
