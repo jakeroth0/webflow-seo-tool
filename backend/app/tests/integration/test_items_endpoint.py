@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import patch
 from fastapi.testclient import TestClient
 from app.main import app
 
@@ -28,10 +29,12 @@ def test_list_items_with_pagination():
 
 
 def test_list_items_missing_collection_id():
-    """Test that missing collection_id returns 422."""
-    response = client.get("/api/v1/items")
+    """Test that missing collection_id returns 400 when env var also unset."""
+    with patch("app.routers.items.settings") as mock_settings:
+        mock_settings.webflow_collection_id = None
+        response = client.get("/api/v1/items")
 
-    assert response.status_code == 422  # Validation error
+    assert response.status_code == 400
 
 
 def test_list_items_invalid_limit():

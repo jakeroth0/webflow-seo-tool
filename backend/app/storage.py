@@ -1,9 +1,12 @@
 import json
+import logging
 import redis
 from typing import Any, Optional
 from app.config import settings
 
-# Redis client (shared across API and Celery workers)
+logger = logging.getLogger(__name__)
+
+# Redis client -- always needed (Celery broker uses it, and fallback storage)
 redis_client = redis.from_url(settings.redis_url, decode_responses=True)
 
 
@@ -48,6 +51,35 @@ class RedisStorage:
         self.set(key, value)
 
 
-# Shared storage instances
-jobs_db = RedisStorage("job")
-proposals_db = RedisStorage("proposals")
+def _create_storage():
+    """Factory: create CosmosStorage if configured, otherwise RedisStorage."""
+    if settings.cosmos_db_url and settings.cosmos_db_key:
+        try:
+            from azure.cosmos import CosmosClient
+            from app.cosmos_storage import CosmosStorage
+
+            logger.info("Initializing Cosmos DB storage...")
+            client = CosmosClient(settings.cosmos_db_url, settings.cosmos_db_key)
+
+            jobs = CosmosStorage(
+                client=client,
+                database_name=settings.cosmos_db_database,
+                container_name=settings.cosmos_db_jobs_container,
+            )
+            proposals = CosmosStorage(
+                client=client,
+                database_name=settings.cosmos_db_database,
+                container_name=settings.cosmos_db_proposals_container,
+            )
+            logger.info("Cosmos DB storage initialized successfully")
+            return jobs, proposals
+
+        except Exception as e:
+            logger.error(f"Failed to initialize Cosmos DB: {e}. Falling back to Redis.")
+
+    logger.info("Using Redis storage (Cosmos DB not configured)")
+    return RedisStorage("job"), RedisStorage("proposals")
+
+
+# Shared storage instances -- used by tasks.py and routers/jobs.py
+jobs_db, proposals_db = _create_storage()

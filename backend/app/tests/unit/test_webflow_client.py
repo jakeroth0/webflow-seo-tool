@@ -21,14 +21,13 @@ async def test_mock_update_item():
     client = MockWebflowClient()
 
     result = await client.update_item(
+        collection_id="coll123",
         item_id="item_001",
-        alt_text="New alt text",
-        caption="New caption",
+        field_data={"1-after-alt-text": "New alt text"},
     )
 
-    assert result["updated"] is True
-    assert result["fields"]["alt_text"] == "New alt text"
-    assert result["fields"]["caption"] == "New caption"
+    assert result["id"] == "item_001"
+    assert result["fieldData"]["1-after-alt-text"] == "New alt text"
 
 
 @pytest.mark.asyncio

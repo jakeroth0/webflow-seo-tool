@@ -21,9 +21,12 @@ class Settings(BaseSettings):
     # Redis (for later phases)
     redis_url: str = "redis://localhost:6379"
 
-    # Database (for later phases)
+    # Azure Cosmos DB
     cosmos_db_url: Optional[str] = None
     cosmos_db_key: Optional[str] = None
+    cosmos_db_database: str = "webflow-seo-tool"
+    cosmos_db_jobs_container: str = "jobs"
+    cosmos_db_proposals_container: str = "proposals"
 
     model_config = {"env_file": ".env", "case_sensitive": False}
 
