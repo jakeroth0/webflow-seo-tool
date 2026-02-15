@@ -19,7 +19,7 @@ def test_create_job_success():
     assert data["status"] == "queued"
     assert data["progress"]["total"] == 3
     assert data["progress"]["processed"] == 0
-    assert data["estimated_duration_seconds"] == 6  # 3 items * 2 sec
+    assert data["estimated_duration_seconds"] == 36  # 3 items * 12 sec (4 images * 3s each)
 
 
 def test_create_job_empty_items():
