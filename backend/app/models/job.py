@@ -19,7 +19,9 @@ class CreateJobRequest(BaseModel):
     item_ids: list[str] = Field(
         ..., min_length=1, description="List of item IDs to process"
     )
-    collection_id: str = Field(..., description="Webflow collection ID")
+    collection_id: Optional[str] = Field(
+        None, description="Webflow collection ID (uses env default if not provided)"
+    )
 
 
 class JobProgress(BaseModel):

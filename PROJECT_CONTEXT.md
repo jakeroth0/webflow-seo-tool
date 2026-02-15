@@ -19,12 +19,23 @@ Internal web app that:
 - [x] Phase 2.1: Items endpoint GET /api/v1/items (4 tests)
 - [x] Phase 2.2: Job creation POST /api/v1/generate (4 tests)
 - [x] Frontend: Load and display items from API
-- [ ] Phase 3: Background processing with Celery + Redis
-- [ ] Phase 4: OpenAI integration for alt text generation
+- [x] Phase 2.3: Real Webflow API integration (all 4 image fields)
+- [x] Phase 2.4: OpenAI Vision integration (gpt-4o-mini)
+- [x] Phase 2.5: Frontend generate button + editable proposals
+- [x] Phase 2.6: Apply proposals to Webflow CMS
+- [ ] **Phase 3: Background processing with Celery + Redis** ← NEXT
+
+## Roadmap
+**Immediate Next Steps:**
+1. ✅ Phase 2.3: Connect to real Webflow API (replace mock)
+2. ✅ Phase 2.4: Integrate OpenAI Vision to generate alt text
+3. ✅ Phase 2.5: Wire up generate button in frontend with editable proposals
+4. Phase 2.6: Apply selected proposals to Webflow CMS
+5. Phase 3: Add Redis + Celery for background job processing
 
 ## Active Task
-**Current Step:** Phase 2 Complete - 21 tests passing
-**Next:** Phase 3 - Background job processing (Celery + Redis)
+**Current Step:** Phase 2 Complete! 🎉
+**Next:** Phase 3 - Background processing with Celery + Redis
 
 ## Test Summary
 ```
@@ -40,17 +51,27 @@ Internal web app that:
 ## Endpoints Available
 - `GET /health` - Health check
 - `GET /` - API info
-- `GET /api/v1/items?collection_id=X` - List CMS items
-- `POST /api/v1/generate` - Create generation job
-- `GET /api/v1/jobs/{job_id}` - Get job status
+- `GET /api/v1/items?collection_id=X&limit=50` - List CMS items with all images
+- `POST /api/v1/generate` - Create alt text generation job
+- `GET /api/v1/jobs/{job_id}` - Get job status with progress
+- `GET /api/v1/jobs/{job_id}/proposals` - Get AI-generated proposals
+- `POST /api/v1/apply` - Apply proposals to Webflow CMS
 - `GET /docs` - Swagger UI
 
 ## Accounts Set Up
 - [x] OpenAI account with API key
 - [x] Webflow account with test site
 - [x] GitHub repo: https://github.com/jakeroth0/webflow-seo-tool
-- [ ] Redis (needed Phase 3)
-- [ ] Azure Cosmos DB (needed Phase 3)
+- [ ] Redis (Phase 3)
+- [ ] Azure Cosmos DB (Phase 3)
+
+## Environment Variables Needed
+```bash
+# Add to backend/.env
+WEBFLOW_API_TOKEN=your_token_here
+WEBFLOW_COLLECTION_ID=your_collection_id_here
+OPENAI_API_KEY=your_key_here
+```
 
 ## Tech Stack
 - Backend: Python 3.13, FastAPI, Pydantic
@@ -76,7 +97,16 @@ pytest app/tests/ -v
 ```
 
 ## What's Working
-- Backend API serving at localhost:8000 with Swagger docs at /docs
-- Frontend UI at localhost:3000 with live API health check
-- "Load Items" button fetches mock CMS items and displays them
-- Job creation endpoint ready (no worker processing yet)
+- ✅ Backend API serving at localhost:8000 with Swagger docs at /docs
+- ✅ Frontend UI at localhost:3000 with live API health check
+- ✅ Real Webflow API integration with 217 items, 4 images each (1-after through 4-after)
+- ✅ "Load Projects" fetches real CMS items and displays all images with current alt text
+- ✅ Item selection with checkboxes (individual + "Select All")
+- ✅ "Generate Alt Text" button creates jobs and processes in background
+- ✅ Real-time progress tracking with visual progress bar
+- ✅ OpenAI Vision (gpt-4o-mini) generates SEO-optimized alt text (max 125 chars)
+- ✅ Side-by-side comparison of current vs. AI-generated alt text
+- ✅ Editable proposals with character counter (150 max) and "edited" badge
+- ✅ "Apply All" button updates Webflow CMS with approved alt text
+- ✅ Auto-publish items after updating (queues for publish)
+- ✅ UI auto-refreshes to show applied alt text
