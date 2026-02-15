@@ -95,9 +95,12 @@ class WebflowClient:
         This is idempotent - safe to retry.
         """
         try:
+            payload = {"fieldData": field_data}
+            logger.info(f"Updating item {item_id} with payload: {payload}")
+
             response = await self.client.patch(
                 f"/collections/{collection_id}/items/{item_id}",
-                json={"fieldData": field_data},
+                json=payload,
             )
 
             if response.status_code == 429:
@@ -109,8 +112,15 @@ class WebflowClient:
             return response.json()
 
         except httpx.HTTPStatusError as e:
-            logger.error(f"Failed to update item {item_id}: {e.response.status_code}")
-            raise
+            error_detail = ""
+            try:
+                error_body = e.response.json()
+                error_detail = f" - {error_body}"
+            except:
+                error_detail = f" - {e.response.text}"
+
+            logger.error(f"Failed to update item {item_id}: {e.response.status_code}{error_detail}")
+            raise Exception(f"Webflow API error: {e.response.status_code}{error_detail}")
         except httpx.RequestError as e:
             logger.error(f"Request error updating item: {str(e)}")
             raise
