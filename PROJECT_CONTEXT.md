@@ -22,8 +22,8 @@ Internal web app that:
 - [x] Phase 2.3: Real Webflow API integration (all 4 image fields)
 - [x] Phase 2.4: OpenAI Vision integration (gpt-4o-mini)
 - [x] Phase 2.5: Frontend generate button + editable proposals
-- [ ] **Phase 2.6: Apply proposals to Webflow CMS** ← CURRENT
-- [ ] Phase 3: Background processing with Celery + Redis
+- [x] Phase 2.6: Apply proposals to Webflow CMS
+- [ ] **Phase 3: Background processing with Celery + Redis** ← NEXT
 
 ## Roadmap
 **Immediate Next Steps:**
@@ -34,8 +34,8 @@ Internal web app that:
 5. Phase 3: Add Redis + Celery for background job processing
 
 ## Active Task
-**Current Step:** Phase 2.6 - Apply Proposals to Webflow
-**Goal:** Add "Apply" button functionality to update Webflow CMS with approved alt text
+**Current Step:** Phase 2 Complete! 🎉
+**Next:** Phase 3 - Background processing with Celery + Redis
 
 ## Test Summary
 ```
@@ -55,6 +55,7 @@ Internal web app that:
 - `POST /api/v1/generate` - Create alt text generation job
 - `GET /api/v1/jobs/{job_id}` - Get job status with progress
 - `GET /api/v1/jobs/{job_id}/proposals` - Get AI-generated proposals
+- `POST /api/v1/apply` - Apply proposals to Webflow CMS
 - `GET /docs` - Swagger UI
 
 ## Accounts Set Up
@@ -106,4 +107,6 @@ pytest app/tests/ -v
 - ✅ OpenAI Vision (gpt-4o-mini) generates SEO-optimized alt text (max 125 chars)
 - ✅ Side-by-side comparison of current vs. AI-generated alt text
 - ✅ Editable proposals with character counter (150 max) and "edited" badge
-- ⏳ Apply proposals to Webflow (next step)
+- ✅ "Apply All" button updates Webflow CMS with approved alt text
+- ✅ Auto-publish items after updating (queues for publish)
+- ✅ UI auto-refreshes to show applied alt text
