@@ -467,8 +467,9 @@ function App() {
 
                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                             {item.images.map((image) => {
-                              // Find proposal for this specific image by field_name
-                              const proposal = itemProposals.find((p) => p.field_name === image.field_name)
+                              // Find proposal for this specific image
+                              // image.field_name is like '1-after', proposal.field_name is like '1-after-alt-text'
+                              const proposal = itemProposals.find((p) => p.field_name === `${image.field_name}-alt-text`)
                               return (
                                 <div
                                   key={image.field_name}
