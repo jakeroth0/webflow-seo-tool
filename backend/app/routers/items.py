@@ -3,6 +3,7 @@ from typing import Optional
 from app.models import CMSItemResponse, CMSItem, ImageWithAltText
 from app.services.webflow_client import WebflowClient, MockWebflowClient
 from app.config import settings
+from app.auth import get_current_user
 import logging
 
 logger = logging.getLogger(__name__)
@@ -25,6 +26,7 @@ async def list_items(
     limit: int = Query(50, ge=1, le=100, description="Number of items to return"),
     offset: int = Query(0, ge=0, description="Pagination offset"),
     client: WebflowClient = Depends(get_webflow_client),
+    current_user: dict = Depends(get_current_user),
 ):
     """
     List CMS items from a Webflow collection.

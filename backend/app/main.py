@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import logging
 
 from app.config import settings
-from app.routers import items, jobs
+from app.routers import items, jobs, auth, admin
 
 logging.basicConfig(level=settings.log_level)
 logger = logging.getLogger(__name__)
@@ -23,6 +23,8 @@ app.add_middleware(
 )
 
 # Register routers
+app.include_router(auth.router)
+app.include_router(admin.router)
 app.include_router(items.router)
 app.include_router(jobs.router)
 

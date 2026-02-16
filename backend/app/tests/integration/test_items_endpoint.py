@@ -2,6 +2,18 @@ import pytest
 from unittest.mock import patch
 from fastapi.testclient import TestClient
 from app.main import app
+from app.auth import get_current_user
+
+STUB_USER = {"user_id": "test_user", "role": "admin", "email": "test@test.com"}
+
+
+@pytest.fixture(autouse=True)
+def override_auth():
+    """Override auth dependency so existing tests pass without session cookies."""
+    app.dependency_overrides[get_current_user] = lambda: STUB_USER
+    yield
+    app.dependency_overrides.pop(get_current_user, None)
+
 
 client = TestClient(app)
 

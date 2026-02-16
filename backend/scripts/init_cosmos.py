@@ -35,6 +35,20 @@ def init_cosmos():
     )
     print(f"Container '{settings.cosmos_db_proposals_container}' ready (partition: /job_id)")
 
+    # Create users container
+    database.create_container_if_not_exists(
+        id=settings.cosmos_db_users_container,
+        partition_key=PartitionKey(path="/user_id"),
+    )
+    print(f"Container '{settings.cosmos_db_users_container}' ready (partition: /user_id)")
+
+    # Create settings container
+    database.create_container_if_not_exists(
+        id=settings.cosmos_db_settings_container,
+        partition_key=PartitionKey(path="/scope"),
+    )
+    print(f"Container '{settings.cosmos_db_settings_container}' ready (partition: /scope)")
+
     print("Cosmos DB initialization complete!")
 
 

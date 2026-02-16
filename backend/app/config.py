@@ -18,8 +18,12 @@ class Settings(BaseSettings):
     webflow_collection_id: Optional[str] = None
     openai_api_key: Optional[str] = None
 
-    # Redis (for later phases)
+    # Redis
     redis_url: str = "redis://localhost:6379"
+
+    # Session / Auth
+    session_secret_key: str = "change-me-in-production"
+    session_ttl_seconds: int = 86400  # 24 hours
 
     # Azure Cosmos DB
     cosmos_db_url: Optional[str] = None
@@ -27,6 +31,8 @@ class Settings(BaseSettings):
     cosmos_db_database: str = "webflow-seo-tool"
     cosmos_db_jobs_container: str = "jobs"
     cosmos_db_proposals_container: str = "proposals"
+    cosmos_db_users_container: str = "users"
+    cosmos_db_settings_container: str = "settings"
 
     model_config = {"env_file": ".env", "case_sensitive": False}
 
