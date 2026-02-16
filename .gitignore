@@ -30,3 +30,6 @@ secrets.json
 # OS
 .DS_Store
 Thumbs.db
+
+# Design references (local only)
+.design-references/
