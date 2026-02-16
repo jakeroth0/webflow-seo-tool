@@ -1,0 +1,4 @@
+
+# Design references (large files)
+.design-references/*
+\!.design-references/README.md
