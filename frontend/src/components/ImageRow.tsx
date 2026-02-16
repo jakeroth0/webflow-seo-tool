@@ -1,5 +1,4 @@
 import { Sparkles } from 'lucide-react'
-import type { ImageWithAltText } from '../types'
 
 interface ImageRowProps {
   imageKey: string
@@ -17,7 +16,6 @@ interface ImageRowProps {
 }
 
 export function ImageRow({
-  imageKey,
   imageUrl,
   fieldName,
   itemName,
