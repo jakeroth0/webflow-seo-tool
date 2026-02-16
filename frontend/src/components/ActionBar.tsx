@@ -1,3 +1,6 @@
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+
 interface ActionBarProps {
   selectedImageCount: number
   generating: boolean
@@ -16,47 +19,38 @@ export function ActionBar({
   onApply,
 }: ActionBarProps) {
   return (
-    <div
-      className="flex items-center gap-3 p-3 rounded-lg"
-      style={{ backgroundColor: 'var(--bg-secondary)' }}
-    >
-      <button
+    <div className="flex items-center gap-3 p-4 bg-card/50 rounded-lg border border-border/40">
+      <Button
         onClick={onGenerate}
         disabled={generating || selectedImageCount === 0}
-        className="px-4 py-2 text-sm font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        style={{ backgroundColor: 'var(--success)', color: 'white' }}
-        onMouseEnter={(e) => {
-          if (!e.currentTarget.disabled)
-            e.currentTarget.style.backgroundColor = '#1e8e4a'
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = 'var(--success)'
-        }}
+        className="bg-green-600 hover:bg-green-700 text-white disabled:opacity-40"
       >
-        {generating ? 'Generating...' : `Generate Alt Text (${selectedImageCount})`}
-      </button>
+        {generating ? 'Generating...' : 'Generate Alt Text'}
+        {!generating && selectedImageCount > 0 && (
+          <Badge variant="secondary" className="ml-2 bg-white/20">
+            {selectedImageCount}
+          </Badge>
+        )}
+      </Button>
 
       {hasProposals && (
-        <button
+        <Button
           onClick={onApply}
           disabled={applying || selectedImageCount === 0}
-          className="px-4 py-2 text-sm font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{ backgroundColor: 'var(--accent)', color: 'white' }}
-          onMouseEnter={(e) => {
-            if (!e.currentTarget.disabled)
-              e.currentTarget.style.backgroundColor = 'var(--accent-hover)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = 'var(--accent)'
-          }}
+          className="disabled:opacity-40"
         >
-          {applying ? 'Applying...' : `Apply Selected (${selectedImageCount})`}
-        </button>
+          {applying ? 'Applying...' : 'Apply to Webflow'}
+          {!applying && selectedImageCount > 0 && (
+            <Badge variant="secondary" className="ml-2 bg-white/20">
+              {selectedImageCount}
+            </Badge>
+          )}
+        </Button>
       )}
 
       {selectedImageCount === 0 && (
-        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-          Check "Include" on images to enable generation and apply
+        <p className="text-xs text-muted-foreground">
+          Check "Include" on images to enable actions
         </p>
       )}
     </div>

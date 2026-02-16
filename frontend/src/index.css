@@ -50,54 +50,68 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
-/* shadcn/ui theme integration (mapped to Discord dark theme) */
+/* Discord-Inspired Design System */
 @layer base {
   :root {
-    /* Background colors */
-    --background: 222 14% 12%;        /* #1e1f22 - Discord dark bg */
-    --foreground: 210 9% 95%;         /* #f2f3f5 - primary text */
+    /* Background layers (Discord-style depth) */
+    --background: 222 14% 12%;        /* #1e1f22 - Base layer */
+    --foreground: 210 9% 95%;         /* #f2f3f5 - Primary text */
 
-    /* Card component */
-    --card: 223 12% 17%;              /* #2b2d31 - sidebar bg */
-    --card-foreground: 210 9% 95%;    /* #f2f3f5 */
+    /* Surface layers (elevated panels) */
+    --card: 223 12% 17%;              /* #2b2d31 - Cards/Sidebar */
+    --card-foreground: 210 9% 95%;
 
-    /* Popover component */
-    --popover: 223 12% 17%;           /* #2b2d31 */
-    --popover-foreground: 210 9% 95%; /* #f2f3f5 */
+    --popover: 223 12% 19%;           /* Slightly elevated */
+    --popover-foreground: 210 9% 95%;
 
-    /* Primary action color */
-    --primary: 234 89% 67%;           /* #5865f2 - Discord blurple */
-    --primary-foreground: 0 0% 100%;  /* white */
+    /* Accent color (Discord blurple - single primary color) */
+    --primary: 234 89% 67%;           /* #5865f2 */
+    --primary-foreground: 0 0% 100%;
 
-    /* Secondary elements */
-    --secondary: 222 14% 22%;         /* #313338 - main content bg */
+    /* Secondary surfaces */
+    --secondary: 222 14% 22%;         /* #313338 - Elevated content */
     --secondary-foreground: 210 9% 95%;
 
-    /* Muted/disabled states */
-    --muted: 222 14% 25%;             /* #383a40 - input bg */
-    --muted-foreground: 220 9% 64%;   /* #949ba4 - muted text */
+    /* Muted/subtle elements */
+    --muted: 222 14% 25%;             /* #383a40 - Input backgrounds */
+    --muted-foreground: 220 9% 64%;   /* #949ba4 - Secondary text */
 
-    /* Accent color (same as primary) */
-    --accent: 234 89% 67%;            /* #5865f2 */
+    /* Accent (same as primary for consistency) */
+    --accent: 234 89% 67%;
     --accent-foreground: 0 0% 100%;
 
-    /* Destructive/danger actions */
-    --destructive: 0 84% 60%;         /* #f23f43 - danger red */
+    /* Status colors */
+    --destructive: 0 84% 60%;         /* #f23f43 - Errors/Danger */
     --destructive-foreground: 0 0% 100%;
 
-    /* Borders and inputs */
-    --border: 222 10% 26%;            /* #3f4147 */
-    --input: 222 14% 25%;             /* #383a40 */
-    --ring: 234 89% 67%;              /* #5865f2 - focus ring */
+    --success: 142 76% 36%;           /* #23a559 - Success states */
+    --warning: 38 92% 50%;            /* #f0b232 - Warnings/Drafts */
 
-    /* Border radius */
+    /* Borders (subtle, almost invisible) */
+    --border: 222 10% 26% / 0.4;      /* Very subtle borders */
+    --input: 222 14% 25%;             /* Input backgrounds */
+    --ring: 234 89% 67%;              /* Focus ring (accent color) */
+
+    /* Border radius (subtle rounding) */
     --radius: 0.5rem;
   }
+
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
   }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+  }
+
+  /* Focus styles */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-0;
+  }
+
+  /* Selection styles */
+  ::selection {
+    @apply bg-primary/30 text-foreground;
   }
 }
 

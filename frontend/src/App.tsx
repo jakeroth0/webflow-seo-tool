@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { AppLayout } from './components/AppLayout'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
+import { Toaster } from '@/components/ui/sonner'
 
 function AppContent() {
   const { user, isLoading, error } = useAuth()
@@ -47,6 +48,7 @@ function App() {
   return (
     <AuthProvider>
       <AppContent />
+      <Toaster richColors position="bottom-right" />
     </AuthProvider>
   )
 }

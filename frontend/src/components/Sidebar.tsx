@@ -1,3 +1,8 @@
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Separator } from '@/components/ui/separator'
+import { Skeleton } from '@/components/ui/skeleton'
 import type { CMSItem } from '../types'
 
 interface SidebarProps {
@@ -20,61 +25,56 @@ export function Sidebar({
   const allSelected = items.length > 0 && selectedItems.size === items.length
 
   return (
-    <aside
-      className="flex flex-col border-r"
-      style={{
-        width: '280px',
-        minWidth: '280px',
-        backgroundColor: 'var(--bg-secondary)',
-        borderColor: 'var(--border)',
-      }}
-    >
-      {/* Sidebar header */}
-      <div className="p-3 border-b" style={{ borderColor: 'var(--border)' }}>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-            Projects
-          </h2>
-          <button
+    <aside className="w-[280px] min-w-[280px] h-full bg-card border-r border-border/40 flex flex-col">
+      {/* Header */}
+      <div className="p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-foreground">Projects</h2>
+          <Button
             onClick={onLoadItems}
             disabled={loading}
-            className="px-3 py-1 text-xs font-medium rounded-md transition-colors disabled:opacity-50"
-            style={{
-              backgroundColor: 'var(--accent)',
-              color: 'white',
-            }}
-            onMouseEnter={(e) =>
-              !loading && (e.currentTarget.style.backgroundColor = 'var(--accent-hover)')
-            }
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
+            size="sm"
+            className="h-7 px-3 text-xs"
           >
-            {loading ? 'Loading...' : 'Load'}
-          </button>
+            {loading ? 'Loading...' : 'Load Items'}
+          </Button>
         </div>
 
         {/* Select All */}
         {items.length > 0 && (
-          <label
-            className="flex items-center gap-2 cursor-pointer text-xs py-1"
-            style={{ color: 'var(--text-secondary)' }}
-          >
-            <input
-              type="checkbox"
-              checked={allSelected}
-              onChange={onToggleSelectAll}
-              className="w-3.5 h-3.5 rounded accent-[var(--accent)]"
-            />
-            Select All ({items.length})
-          </label>
+          <>
+            <Separator className="bg-border/40" />
+            <label className="flex items-center gap-2 cursor-pointer group py-1">
+              <Checkbox
+                checked={allSelected}
+                onCheckedChange={onToggleSelectAll}
+                className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+              />
+              <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
+                Select All ({items.length})
+              </span>
+            </label>
+          </>
         )}
       </div>
 
-      {/* Project list */}
-      <div className="flex-1 overflow-y-auto">
-        {items.length === 0 ? (
-          <div className="p-4 text-center">
-            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-              {loading ? 'Loading projects...' : 'Click "Load" to fetch projects'}
+      <Separator className="bg-border/40" />
+
+      {/* Project List */}
+      <ScrollArea className="flex-1">
+        {loading && items.length === 0 ? (
+          <div className="p-4 space-y-3">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="space-y-2">
+                <Skeleton className="h-4 w-3/4 bg-muted/20" />
+                <Skeleton className="h-3 w-1/2 bg-muted/10" />
+              </div>
+            ))}
+          </div>
+        ) : items.length === 0 ? (
+          <div className="p-6 text-center">
+            <p className="text-xs text-muted-foreground">
+              Click "Load Items" to fetch your Webflow projects
             </p>
           </div>
         ) : (
@@ -84,34 +84,29 @@ export function Sidebar({
               return (
                 <label
                   key={item.id}
-                  className="flex items-center gap-2.5 px-3 py-2 cursor-pointer transition-colors"
-                  style={{
-                    backgroundColor: isSelected ? 'rgba(88, 101, 242, 0.1)' : 'transparent',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isSelected)
-                      e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)'
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isSelected)
-                      e.currentTarget.style.backgroundColor = 'transparent'
-                  }}
+                  className={`
+                    flex items-center gap-3 px-4 py-2.5 cursor-pointer
+                    transition-colors duration-150 relative
+                    ${isSelected ? 'bg-primary/10' : 'hover:bg-accent/5'}
+                  `}
                 >
-                  <input
-                    type="checkbox"
+                  {/* Discord-style left border indicator */}
+                  {isSelected && (
+                    <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-primary rounded-r" />
+                  )}
+
+                  <Checkbox
                     checked={isSelected}
-                    onChange={() => onToggleItem(item.id)}
-                    className="w-3.5 h-3.5 rounded accent-[var(--accent)]"
+                    onCheckedChange={() => onToggleItem(item.id)}
+                    className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                   />
+
                   <div className="flex-1 min-w-0">
-                    <p
-                      className="text-sm truncate"
-                      style={{ color: isSelected ? 'var(--text-primary)' : 'var(--text-secondary)' }}
-                    >
+                    <p className={`text-sm truncate transition-colors ${isSelected ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
                       {item.name}
                     </p>
-                    <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
-                      {item.images.length} images
+                    <p className="text-[11px] text-muted-foreground font-mono">
+                      {item.images.length} {item.images.length === 1 ? 'image' : 'images'}
                     </p>
                   </div>
                 </label>
@@ -119,7 +114,7 @@ export function Sidebar({
             })}
           </div>
         )}
-      </div>
+      </ScrollArea>
     </aside>
   )
 }
