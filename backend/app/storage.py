@@ -35,6 +35,16 @@ class RedisStorage:
         """Check if key exists in Redis."""
         return redis_client.exists(f"{self.prefix}:{key}") > 0
 
+    def list_all(self) -> list[dict]:
+        """Return all values with this prefix."""
+        keys = redis_client.keys(f"{self.prefix}:*")
+        results = []
+        for key in keys:
+            data = redis_client.get(key)
+            if data:
+                results.append(json.loads(data))
+        return results
+
     def __contains__(self, key: str) -> bool:
         """Support 'in' operator."""
         return self.exists(key)
@@ -71,15 +81,27 @@ def _create_storage():
                 database_name=settings.cosmos_db_database,
                 container_name=settings.cosmos_db_proposals_container,
             )
+            users = CosmosStorage(
+                client=client,
+                database_name=settings.cosmos_db_database,
+                container_name=settings.cosmos_db_users_container,
+                partition_key_field="user_id",
+            )
+            app_settings = CosmosStorage(
+                client=client,
+                database_name=settings.cosmos_db_database,
+                container_name=settings.cosmos_db_settings_container,
+                partition_key_field="scope",
+            )
             logger.info("Cosmos DB storage initialized successfully")
-            return jobs, proposals
+            return jobs, proposals, users, app_settings
 
         except Exception as e:
             logger.error(f"Failed to initialize Cosmos DB: {e}. Falling back to Redis.")
 
     logger.info("Using Redis storage (Cosmos DB not configured)")
-    return RedisStorage("job"), RedisStorage("proposals")
+    return RedisStorage("job"), RedisStorage("proposals"), RedisStorage("users"), RedisStorage("settings")
 
 
-# Shared storage instances -- used by tasks.py and routers/jobs.py
-jobs_db, proposals_db = _create_storage()
+# Shared storage instances
+jobs_db, proposals_db, users_db, settings_db = _create_storage()

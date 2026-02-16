@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from app.models import (
     CreateJobRequest,
     JobResponse,
@@ -11,6 +11,7 @@ from app.services.webflow_client import WebflowClient, MockWebflowClient
 from app.config import settings
 from app.tasks import generate_alt_text_task
 from app.storage import jobs_db, proposals_db
+from app.auth import get_current_user
 import uuid
 from datetime import datetime
 import logging
@@ -28,7 +29,7 @@ def get_webflow_client():
 
 
 @router.post("/generate", response_model=JobResponse)
-async def create_generation_job(request: CreateJobRequest):
+async def create_generation_job(request: CreateJobRequest, current_user: dict = Depends(get_current_user)):
     """
     Create a new job to generate alt text for selected items.
 
@@ -56,6 +57,7 @@ async def create_generation_job(request: CreateJobRequest):
         "collection_id": collection_id,
         "item_ids": request.item_ids,
         "created_at": datetime.now().isoformat(),
+        "created_by": current_user["user_id"],
         "progress": {
             "processed": 0,
             "total": len(request.item_ids),
@@ -80,7 +82,7 @@ async def create_generation_job(request: CreateJobRequest):
 
 
 @router.get("/jobs/{job_id}", response_model=JobResponse)
-async def get_job_status(job_id: str):
+async def get_job_status(job_id: str, current_user: dict = Depends(get_current_user)):
     """
     Get the status of a generation job.
 
@@ -100,7 +102,7 @@ async def get_job_status(job_id: str):
 
 
 @router.get("/jobs/{job_id}/proposals")
-async def get_job_proposals(job_id: str):
+async def get_job_proposals(job_id: str, current_user: dict = Depends(get_current_user)):
     """
     Get generated alt text proposals for a completed job.
 
@@ -127,7 +129,7 @@ async def get_job_proposals(job_id: str):
 
 
 @router.post("/apply", response_model=ApplyProposalResponse)
-async def apply_proposals(request: ApplyProposalRequest):
+async def apply_proposals(request: ApplyProposalRequest, current_user: dict = Depends(get_current_user)):
     """
     Apply approved alt text proposals to Webflow CMS.
 
