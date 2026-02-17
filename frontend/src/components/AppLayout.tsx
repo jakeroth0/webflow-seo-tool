@@ -2,6 +2,7 @@ import { useCallback } from 'react'
 import { Header } from './Header'
 import { Sidebar } from './Sidebar'
 import { MainPanel } from './MainPanel'
+import { Card, CardContent } from '@/components/ui/card'
 import { useAuth } from '../contexts/AuthContext'
 import { useItems } from '../hooks/useItems'
 import { useJobs } from '../hooks/useJobs'
@@ -18,7 +19,6 @@ export function AppLayout() {
     visibleImages,
     loadItems,
     toggleItemSelection,
-    toggleSelectAll,
     toggleImageOptIn,
   } = useItems()
 
@@ -42,7 +42,6 @@ export function AppLayout() {
   }, [generateAltText, selectedImages])
 
   const handleApply = useCallback(() => {
-    // Build updates from opted-in images that have text
     const updates: Array<{ item_id: string; field_name: string; alt_text: string }> = []
 
     for (const imageKey of selectedImages) {
@@ -68,16 +67,10 @@ export function AppLayout() {
 
   if (isLoading) {
     return (
-      <div
-        className="min-h-screen flex items-center justify-center"
-        style={{ backgroundColor: 'var(--bg-primary)' }}
-      >
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
-          <div
-            className="animate-spin rounded-full h-8 w-8 border-2 border-t-transparent mx-auto mb-3"
-            style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }}
-          />
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent mx-auto mb-3" />
+          <p className="text-sm text-muted-foreground">
             Connecting to API...
           </p>
         </div>
@@ -87,30 +80,23 @@ export function AppLayout() {
 
   if (error) {
     return (
-      <div
-        className="min-h-screen flex items-center justify-center"
-        style={{ backgroundColor: 'var(--bg-primary)' }}
-      >
-        <div
-          className="p-6 rounded-lg max-w-md text-center"
-          style={{ backgroundColor: 'var(--bg-secondary)' }}
-        >
-          <p className="text-sm font-medium mb-2" style={{ color: 'var(--danger)' }}>
-            Cannot connect to backend
-          </p>
-          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-            {error}
-          </p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Card className="max-w-md">
+          <CardContent className="pt-6 text-center">
+            <p className="text-sm font-medium mb-2 text-destructive">
+              Cannot connect to backend
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {error}
+            </p>
+          </CardContent>
+        </Card>
       </div>
     )
   }
 
   return (
-    <div
-      className="h-screen flex flex-col"
-      style={{ backgroundColor: 'var(--bg-primary)' }}
-    >
+    <div className="h-screen flex flex-col bg-background">
       <Header />
       <div className="flex-1 flex overflow-hidden">
         <Sidebar
@@ -119,7 +105,6 @@ export function AppLayout() {
           selectedItems={selectedItems}
           onLoadItems={loadItems}
           onToggleItem={toggleItemSelection}
-          onToggleSelectAll={toggleSelectAll}
         />
         <MainPanel
           visibleImages={visibleImages}

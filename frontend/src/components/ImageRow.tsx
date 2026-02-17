@@ -1,4 +1,6 @@
 import { Sparkles } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
 
 interface ImageRowProps {
   imageKey: string
@@ -32,14 +34,14 @@ export function ImageRow({
   const isOverLimit = charCount > 125
 
   return (
-    <div className="flex flex-col md:flex-row gap-4 p-4 border-b transition-colors hover:bg-[var(--bg-hover)]" style={{ borderColor: 'var(--bg-muted)' }}>
+    <div className="flex flex-col md:flex-row gap-4 p-4 transition-colors hover:bg-muted/50">
       {/* Toggle Switch */}
       <div className="flex items-start pt-1">
         <button
           onClick={onToggleOptIn}
           className={`
             w-10 h-5 rounded-full relative transition-colors duration-200
-            ${isOptedIn ? 'bg-[var(--success)]' : 'bg-[#4E5058]'}
+            ${isOptedIn ? 'bg-green-500' : 'bg-muted'}
           `}
           aria-label={isOptedIn ? 'Exclude image' : 'Include image'}
         >
@@ -57,36 +59,25 @@ export function ImageRow({
         <img
           src={imageUrl}
           alt="Preview"
-          className="w-20 h-20 rounded object-cover border"
-          style={{
-            backgroundColor: 'var(--bg-input)',
-            borderColor: 'var(--bg-muted)'
-          }}
+          className="w-20 h-20 rounded object-cover border bg-muted"
         />
       </div>
 
       {/* Info & Current Alt */}
       <div className="flex-1 min-w-0 space-y-2">
         <div className="flex flex-wrap items-baseline gap-2">
-          <span className="text-sm font-semibold" style={{ color: 'var(--text-header)' }}>
+          <span className="text-sm font-semibold text-foreground">
             {fieldName}
           </span>
-          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+          <span className="text-xs text-muted-foreground">
             in {itemName}
           </span>
         </div>
 
-        <div className="text-[11px] font-bold uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>
+        <div className="text-[11px] font-bold uppercase tracking-wider mb-1 text-muted-foreground">
           Current Alt Text
         </div>
-        <div
-          className="p-2 rounded border text-xs leading-relaxed break-words"
-          style={{
-            backgroundColor: 'var(--bg-input)',
-            borderColor: 'var(--bg-muted)',
-            color: 'var(--text-main)',
-          }}
-        >
+        <div className="p-2 rounded border text-xs leading-relaxed break-words bg-muted text-foreground">
           {currentAltText || <span className="italic opacity-50">Empty Alt Text</span>}
         </div>
       </div>
@@ -94,52 +85,34 @@ export function ImageRow({
       {/* New Alt Text Input */}
       <div className="flex-1 min-w-0 space-y-2">
         <div className="flex justify-between items-center">
-          <label className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+          <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
             New SEO Alt Text
           </label>
           <span
-            className="text-[10px] font-bold"
-            style={{ color: isOverLimit ? 'var(--danger)' : 'var(--text-muted)' }}
+            className={`text-[10px] font-bold ${isOverLimit ? 'text-destructive' : 'text-muted-foreground'}`}
           >
             {charCount}/125
           </span>
         </div>
 
         <div className="relative group">
-          <textarea
+          <Textarea
             value={displayText}
             onChange={(e) => onTextChange(e.target.value)}
             placeholder="Describe the image context for SEO..."
-            className={`
-              w-full h-20 p-2.5 rounded border outline-none text-xs resize-none transition-all
-              ${isOverLimit ? 'border-[var(--danger)] focus:border-[var(--danger)]' : 'border-transparent focus:border-[var(--accent-primary)]'}
-            `}
-            style={{
-              backgroundColor: 'var(--bg-input)',
-              color: 'var(--text-main)',
-            }}
+            className={`h-20 text-xs resize-none ${isOverLimit ? 'border-destructive focus-visible:ring-destructive' : ''}`}
           />
 
           {hasGenerated && !hasDraft && (
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={onAcceptSuggestion}
-              className="absolute bottom-2 right-2 p-1.5 rounded transition-colors"
-              style={{
-                backgroundColor: 'var(--bg-muted)',
-                color: '#B5BAC1',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'var(--bg-selected)'
-                e.currentTarget.style.color = 'white'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'var(--bg-muted)'
-                e.currentTarget.style.color = '#B5BAC1'
-              }}
+              className="absolute bottom-2 right-2 h-7 w-7 hover:bg-accent hover:text-accent-foreground"
               title="Accept AI suggestion"
             >
               <Sparkles className="w-4 h-4" />
-            </button>
+            </Button>
           )}
         </div>
       </div>
