@@ -62,6 +62,7 @@ def mock_storage():
         patch("app.routers.admin.settings_db", mem_settings),
         patch("app.tasks.jobs_db", mem_jobs),
         patch("app.tasks.proposals_db", mem_proposals),
+        patch("app.key_manager.settings_db", mem_settings),
     ):
         yield {
             "jobs": mem_jobs,

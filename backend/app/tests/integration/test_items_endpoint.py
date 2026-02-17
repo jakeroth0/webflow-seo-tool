@@ -41,9 +41,8 @@ def test_list_items_with_pagination():
 
 
 def test_list_items_missing_collection_id():
-    """Test that missing collection_id returns 400 when env var also unset."""
-    with patch("app.routers.items.settings") as mock_settings:
-        mock_settings.webflow_collection_id = None
+    """Test that missing collection_id returns 400 when no key configured."""
+    with patch("app.routers.items.get_webflow_collection_id", return_value=None):
         response = client.get("/api/v1/items")
 
     assert response.status_code == 400

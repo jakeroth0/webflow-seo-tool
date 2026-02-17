@@ -7,24 +7,26 @@ from app.celery_app import celery_app
 from app.models import JobStatus, JobProgress, Proposal
 from app.services.openai_client import AltTextGenerator, MockAltTextGenerator
 from app.services.webflow_client import WebflowClient, MockWebflowClient
-from app.config import settings
 from app.storage import jobs_db, proposals_db
+from app.key_manager import get_webflow_api_token, get_openai_api_key
 
 logger = logging.getLogger(__name__)
 
 
 def get_alt_text_generator():
     """Get OpenAI client (real if API key available, otherwise mock)."""
-    if settings.openai_api_key:
-        return AltTextGenerator(api_key=settings.openai_api_key)
+    api_key = get_openai_api_key()
+    if api_key:
+        return AltTextGenerator(api_key=api_key)
     logger.warning("No OpenAI API key found, using mock generator")
     return MockAltTextGenerator()
 
 
 def get_webflow_client():
     """Get Webflow client (real if token available, otherwise mock)."""
-    if settings.webflow_api_token:
-        return WebflowClient(api_token=settings.webflow_api_token)
+    token = get_webflow_api_token()
+    if token:
+        return WebflowClient(api_token=token)
     return MockWebflowClient()
 
 

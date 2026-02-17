@@ -8,10 +8,10 @@ from app.models import (
     ApplyProposalResponse,
 )
 from app.services.webflow_client import WebflowClient, MockWebflowClient
-from app.config import settings
 from app.tasks import generate_alt_text_task
 from app.storage import jobs_db, proposals_db
 from app.auth import get_current_user
+from app.key_manager import get_webflow_api_token, get_webflow_collection_id
 import uuid
 from datetime import datetime
 import logging
@@ -23,8 +23,9 @@ router = APIRouter(prefix="/api/v1", tags=["jobs"])
 
 def get_webflow_client():
     """Get Webflow client (real if token available, otherwise mock)."""
-    if settings.webflow_api_token:
-        return WebflowClient(api_token=settings.webflow_api_token)
+    token = get_webflow_api_token()
+    if token:
+        return WebflowClient(api_token=token)
     return MockWebflowClient()
 
 
@@ -36,8 +37,8 @@ async def create_generation_job(request: CreateJobRequest, current_user: dict = 
     Returns immediately with a job_id. Alt text generation happens in background.
     Use GET /jobs/{job_id} to poll for completion.
     """
-    # Use collection_id from request or env
-    collection_id = request.collection_id or settings.webflow_collection_id
+    # Use collection_id from request, stored, or env
+    collection_id = request.collection_id or get_webflow_collection_id()
     if not collection_id:
         raise HTTPException(
             status_code=400,
@@ -144,7 +145,7 @@ async def apply_proposals(request: ApplyProposalRequest, current_user: dict = De
     Groups updates by item_id and applies all field changes per item in a single request.
     Returns success/failure counts and detailed results.
     """
-    collection_id = settings.webflow_collection_id
+    collection_id = get_webflow_collection_id()
     if not collection_id:
         raise HTTPException(
             status_code=400,

@@ -2,7 +2,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 
-export function Header() {
+export function Header({ onSettings }: { onSettings?: () => void }) {
   const { health, error, user, logout } = useAuth()
 
   return (
@@ -38,6 +38,16 @@ export function Header() {
                 {user.role}
               </Badge>
             </div>
+            {user.role === 'admin' && onSettings && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onSettings}
+                className="text-xs"
+              >
+                Settings
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
