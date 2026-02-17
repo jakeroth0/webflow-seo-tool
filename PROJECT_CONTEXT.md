@@ -68,7 +68,12 @@ Internal web app that:
   - All client factories (items, jobs, tasks) use key_manager instead of direct settings access
   - Frontend Settings page: Card-based form, masked current values, source badges, save/remove
   - 18 new tests (7 encryption + 6 key_manager + 5 admin endpoint integration)
-- [ ] **Phase 5 M5.6: Deployment to Render.com** <-- NEXT
+- [x] **Phase 5 M5.6: UX Improvements**
+  - Auto-paginate all Webflow items: loadItems loops 100/request until has_more is false
+  - Sidebar table: TanStack Table client-side pagination (20/page, Previous/Next, X–Y of Z)
+  - Mobile responsive sidebar: slide-in drawer with backdrop overlay; hamburger/close toggle in header; auto-close on item select; desktop layout unchanged
+  - Image opt-out fix: generate request passes specific opted-in `image_keys` to backend; Celery task filters to only those fields per item (previously all 4 image slots were always processed)
+- [ ] **Phase 5 M5.7: Deployment to Render.com** <-- NEXT
 
 ## Architecture
 
@@ -77,7 +82,7 @@ Internal web app that:
 2. Frontend loads CMS items via `GET /api/v1/items` -- displays thumbnails + current alt text
 3. User selects projects in sidebar, then opts-in individual images
 4. User clicks "Generate Alt Text" -- `POST /api/v1/generate` dispatches Celery task
-5. Celery worker fetches items from Webflow, calls OpenAI Vision for each image
+5. Celery worker fetches items from Webflow, calls OpenAI Vision for each opted-in image field
 6. Frontend polls `GET /api/v1/jobs/{job_id}` every 5 seconds, shows progress bar
 7. On completion, frontend fetches proposals via `GET /api/v1/jobs/{job_id}/proposals`
 8. User reviews, edits proposals (per-image cards, character counter)
@@ -170,10 +175,10 @@ frontend/
     api/client.ts        # Centralized fetch wrapper (credentials: include, 401 broadcast)
     types/index.ts       # Shared TS interfaces
     contexts/AuthContext.tsx  # Real auth: login, register, logout, session restore
-    hooks/useItems.ts    # Items loading, project selection, image opt-in
-    hooks/useJobs.ts     # Generation, polling, draft/generated text management
+    hooks/useItems.ts    # Items loading (auto-paginate all pages), project selection, image opt-in
+    hooks/useJobs.ts     # Generation (sends image_keys), polling, draft/generated text management
     hooks/useApply.ts    # Apply proposals to Webflow
-    components/          # Header, Sidebar, MainPanel, ImageRow, ProgressBar, etc.
+    components/          # Header (hamburger toggle), Sidebar (mobile drawer), MainPanel, SidebarTable (pagination), ImageRow, ProgressBar, etc.
     pages/               # LoginPage, RegisterPage, SettingsPage
     index.css            # shadcn/ui oklch dark theme defaults
   Dockerfile             # Multi-stage: Node build -> Nginx serve
@@ -261,3 +266,5 @@ docker compose run --rm api python -m pytest app/tests/ -v
 - **Dict-like storage interface:** CosmosStorage, RedisStorage, and InMemoryStorage share same API
 - **Component decomposition:** Frontend split into hooks + components for maintainability
 - **4 image fields per item:** Hardcoded field pattern `{1-4}-after` with alt text in `{1-4}-after-alt-text`
+- **Per-image generation filtering:** `image_keys` (list of `"itemId:fieldName"`) passed from frontend to backend; Celery task skips any field not in the opted-in set
+- **Full collection load:** loadItems auto-fetches all pages (100/request) on load; sidebar uses client-side pagination (20/page) for display
