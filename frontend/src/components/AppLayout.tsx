@@ -12,6 +12,7 @@ import { useApply } from '../hooks/useApply'
 export function AppLayout() {
   const { error, isLoading } = useAuth()
   const [view, setView] = useState<'main' | 'settings'>('main')
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const {
     items,
@@ -99,7 +100,11 @@ export function AppLayout() {
 
   return (
     <div className="h-screen flex flex-col bg-background">
-      <Header onSettings={() => setView(view === 'settings' ? 'main' : 'settings')} />
+      <Header
+        onSettings={() => setView(view === 'settings' ? 'main' : 'settings')}
+        sidebarOpen={sidebarOpen}
+        onMenuToggle={() => setSidebarOpen((o) => !o)}
+      />
       {view === 'settings' ? (
         <SettingsPage onBack={() => setView('main')} />
       ) : (
@@ -108,6 +113,8 @@ export function AppLayout() {
             items={items}
             loading={loading}
             selectedItems={selectedItems}
+            isOpen={sidebarOpen}
+            onClose={() => setSidebarOpen(false)}
             onLoadItems={loadItems}
             onToggleItem={toggleItemSelection}
           />

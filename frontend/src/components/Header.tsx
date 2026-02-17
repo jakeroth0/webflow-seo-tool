@@ -1,19 +1,42 @@
 import { useAuth } from '../contexts/AuthContext'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Menu, X } from 'lucide-react'
 
-export function Header({ onSettings }: { onSettings?: () => void }) {
+export function Header({
+  onSettings,
+  sidebarOpen,
+  onMenuToggle,
+}: {
+  onSettings?: () => void
+  sidebarOpen?: boolean
+  onMenuToggle?: () => void
+}) {
   const { health, error, user, logout } = useAuth()
 
   return (
     <header className="flex items-center justify-between px-4 py-3 border-b bg-card">
-      <div>
-        <h1 className="text-lg font-bold text-foreground">
-          Webflow SEO Alt Text Tool
-        </h1>
-        <p className="text-xs text-muted-foreground">
-          Generate and apply SEO-friendly alt text for your CMS images
-        </p>
+      <div className="flex items-center gap-3">
+        {/* Hamburger — mobile only */}
+        {onMenuToggle && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden h-8 w-8"
+            onClick={onMenuToggle}
+            aria-label="Toggle sidebar"
+          >
+            {sidebarOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+          </Button>
+        )}
+        <div>
+          <h1 className="text-lg font-bold text-foreground">
+            Webflow SEO Alt Text Tool
+          </h1>
+          <p className="text-xs text-muted-foreground hidden sm:block">
+            Generate and apply SEO-friendly alt text for your CMS images
+          </p>
+        </div>
       </div>
 
       <div className="flex items-center gap-3">
