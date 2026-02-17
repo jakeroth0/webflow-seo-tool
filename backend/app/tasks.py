@@ -30,7 +30,7 @@ def get_webflow_client():
     return MockWebflowClient()
 
 
-async def process_job_async(job_id: str, collection_id: str, item_ids: list[str]):
+async def process_job_async(job_id: str, collection_id: str, item_ids: list[str], image_keys: list[str] | None = None):
     """
     Async logic for processing alt text generation.
 
@@ -74,10 +74,24 @@ async def process_job_async(job_id: str, collection_id: str, item_ids: list[str]
                 field_data = raw_item.get("fieldData", {})
                 project_name = field_data.get("name", "Project")
 
-                # Process all 4 image fields
+                # Process image fields (filtered by image_keys if provided)
+                # allowed_fields: set of field names like "1-after" for this item
+                if image_keys is not None:
+                    allowed_fields = {
+                        key.split(":", 1)[1]
+                        for key in image_keys
+                        if key.split(":", 1)[0] == item_id
+                    }
+                else:
+                    allowed_fields = None  # None means process all
+
                 for i in range(1, 5):
                     image_field = f"{i}-after"
                     alt_field = f"{i}-after-alt-text"
+
+                    # Skip if not in the opted-in set
+                    if allowed_fields is not None and image_field not in allowed_fields:
+                        continue
 
                     image_data = field_data.get(image_field)
                     existing_alt = field_data.get(alt_field)
@@ -154,7 +168,7 @@ async def process_job_async(job_id: str, collection_id: str, item_ids: list[str]
 
 
 @celery_app.task(name="app.tasks.generate_alt_text", bind=True)
-def generate_alt_text_task(self, job_id: str, collection_id: str, item_ids: list[str]):
+def generate_alt_text_task(self, job_id: str, collection_id: str, item_ids: list[str], image_keys: list[str] | None = None):
     """
     Celery task to generate alt text for CMS items.
 
@@ -169,7 +183,7 @@ def generate_alt_text_task(self, job_id: str, collection_id: str, item_ids: list
 
     try:
         loop.run_until_complete(
-            process_job_async(job_id, collection_id, item_ids)
+            process_job_async(job_id, collection_id, item_ids, image_keys)
         )
     finally:
         loop.close()
