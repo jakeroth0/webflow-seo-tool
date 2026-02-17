@@ -82,6 +82,7 @@ export function useJobs() {
       try {
         const job = await api.post<JobResponse>('/api/v1/generate', {
           item_ids: itemIds,
+          image_keys: [...selectedImages],
         })
         setCurrentJob(job)
         pollJobStatus(job.job_id)

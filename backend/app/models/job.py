@@ -22,6 +22,9 @@ class CreateJobRequest(BaseModel):
     collection_id: Optional[str] = Field(
         None, description="Webflow collection ID (uses env default if not provided)"
     )
+    image_keys: Optional[list[str]] = Field(
+        None, description="Specific 'itemId:fieldName' keys to generate (all images if omitted)"
+    )
 
 
 class JobProgress(BaseModel):

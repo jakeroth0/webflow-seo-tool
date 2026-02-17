@@ -48,8 +48,9 @@ async def create_generation_job(request: CreateJobRequest, current_user: dict = 
     # Generate unique job ID
     job_id = str(uuid.uuid4())
 
-    # Calculate estimated duration (rough: 3 seconds per item with 4 images)
-    estimated_duration = len(request.item_ids) * 12  # 4 images * 3 sec each
+    # Calculate estimated duration (rough: 3 seconds per image)
+    image_count = len(request.image_keys) if request.image_keys else len(request.item_ids) * 4
+    estimated_duration = image_count * 3
 
     # Create job metadata (serialize for Redis)
     job = {
@@ -70,7 +71,7 @@ async def create_generation_job(request: CreateJobRequest, current_user: dict = 
     jobs_db[job_id] = job
 
     # Dispatch Celery task for background processing
-    generate_alt_text_task.delay(job_id, collection_id, request.item_ids)
+    generate_alt_text_task.delay(job_id, collection_id, request.item_ids, request.image_keys)
 
     logger.info(
         "Generation job created",
