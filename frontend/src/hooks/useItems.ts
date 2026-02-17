@@ -11,8 +11,19 @@ export function useItems() {
   const loadItems = useCallback(async () => {
     setLoading(true)
     try {
-      const data = await api.get<CMSItemsResponse>('/api/v1/items?limit=50')
-      setItems(data.items)
+      // Fetch all pages automatically (Webflow max is 100/request)
+      const accumulated: CMSItem[] = []
+      let offset = 0
+      const limit = 100
+      while (true) {
+        const data = await api.get<CMSItemsResponse>(
+          `/api/v1/items?limit=${limit}&offset=${offset}`
+        )
+        accumulated.push(...data.items)
+        if (!data.has_more) break
+        offset += data.items.length
+      }
+      setItems(accumulated)
       // Clear selections when reloading
       setSelectedItems(new Set())
       setSelectedImages(new Set())
