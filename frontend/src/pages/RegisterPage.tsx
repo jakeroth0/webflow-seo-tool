@@ -1,5 +1,8 @@
 import { useState, type FormEvent } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
 interface Props {
   onSwitchToLogin: () => void
@@ -34,151 +37,83 @@ export function RegisterPage({ onSwitchToLogin }: Props) {
   }
 
   return (
-    <div
-      className="min-h-screen flex items-center justify-center"
-      style={{ backgroundColor: 'var(--bg-primary)' }}
-    >
-      <div
-        className="w-full max-w-sm rounded-lg p-8"
-        style={{ backgroundColor: 'var(--bg-secondary)' }}
-      >
-        <h1
-          className="text-2xl font-bold text-center mb-2"
-          style={{ color: 'var(--text-primary)' }}
-        >
-          Create Account
-        </h1>
-        <p
-          className="text-sm text-center mb-6"
-          style={{ color: 'var(--text-muted)' }}
-        >
-          First account becomes admin
-        </p>
-
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label
-              className="block text-xs font-semibold mb-1.5 uppercase"
-              style={{ color: 'var(--text-secondary)' }}
-            >
-              Display Name
-            </label>
-            <input
-              type="text"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              required
-              className="w-full px-3 py-2 rounded text-sm outline-none"
-              style={{
-                backgroundColor: 'var(--bg-input)',
-                color: 'var(--text-primary)',
-                border: '1px solid var(--border)',
-              }}
-            />
-          </div>
-
-          <div className="mb-4">
-            <label
-              className="block text-xs font-semibold mb-1.5 uppercase"
-              style={{ color: 'var(--text-secondary)' }}
-            >
-              Email
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full px-3 py-2 rounded text-sm outline-none"
-              style={{
-                backgroundColor: 'var(--bg-input)',
-                color: 'var(--text-primary)',
-                border: '1px solid var(--border)',
-              }}
-            />
-          </div>
-
-          <div className="mb-4">
-            <label
-              className="block text-xs font-semibold mb-1.5 uppercase"
-              style={{ color: 'var(--text-secondary)' }}
-            >
-              Password
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={8}
-              className="w-full px-3 py-2 rounded text-sm outline-none"
-              style={{
-                backgroundColor: 'var(--bg-input)',
-                color: 'var(--text-primary)',
-                border: '1px solid var(--border)',
-              }}
-            />
-          </div>
-
-          <div className="mb-6">
-            <label
-              className="block text-xs font-semibold mb-1.5 uppercase"
-              style={{ color: 'var(--text-secondary)' }}
-            >
-              Confirm Password
-            </label>
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-              minLength={8}
-              className="w-full px-3 py-2 rounded text-sm outline-none"
-              style={{
-                backgroundColor: 'var(--bg-input)',
-                color: 'var(--text-primary)',
-                border: '1px solid var(--border)',
-              }}
-            />
-          </div>
-
-          {error && (
-            <div
-              className="rounded-md p-3 mb-4 text-sm"
-              style={{ backgroundColor: 'rgba(242, 63, 67, 0.1)', color: 'var(--danger)' }}
-            >
-              {error}
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <Card className="w-full max-w-sm">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl">Create Account</CardTitle>
+          <CardDescription>First account becomes admin</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit}>
+            <div className="mb-4">
+              <label className="block text-xs font-semibold mb-1.5 uppercase text-muted-foreground">
+                Display Name
+              </label>
+              <Input
+                type="text"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                required
+              />
             </div>
-          )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-2.5 rounded font-medium text-sm transition-colors"
-            style={{
-              backgroundColor: loading ? 'var(--accent-hover)' : 'var(--accent)',
-              color: 'white',
-              cursor: loading ? 'not-allowed' : 'pointer',
-            }}
-          >
-            {loading ? 'Creating account...' : 'Register'}
-          </button>
-        </form>
+            <div className="mb-4">
+              <label className="block text-xs font-semibold mb-1.5 uppercase text-muted-foreground">
+                Email
+              </label>
+              <Input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
 
-        <p
-          className="text-sm text-center mt-4"
-          style={{ color: 'var(--text-muted)' }}
-        >
-          Already have an account?{' '}
-          <button
-            onClick={onSwitchToLogin}
-            className="font-medium hover:underline"
-            style={{ color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer' }}
-          >
-            Sign in
-          </button>
-        </p>
-      </div>
+            <div className="mb-4">
+              <label className="block text-xs font-semibold mb-1.5 uppercase text-muted-foreground">
+                Password
+              </label>
+              <Input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={8}
+              />
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-xs font-semibold mb-1.5 uppercase text-muted-foreground">
+                Confirm Password
+              </label>
+              <Input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                minLength={8}
+              />
+            </div>
+
+            {error && (
+              <div className="rounded-md p-3 mb-4 text-sm bg-destructive/10 text-destructive">
+                {error}
+              </div>
+            )}
+
+            <Button type="submit" disabled={loading} className="w-full">
+              {loading ? 'Creating account...' : 'Register'}
+            </Button>
+          </form>
+
+          <p className="text-sm text-center mt-4 text-muted-foreground">
+            Already have an account?{' '}
+            <Button variant="link" onClick={onSwitchToLogin} className="p-0 h-auto">
+              Sign in
+            </Button>
+          </p>
+        </CardContent>
+      </Card>
     </div>
   )
 }

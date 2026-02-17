@@ -14,36 +14,34 @@ export function ProgressBar({ job }: ProgressBarProps) {
           ? 'Job Failed'
           : 'Queued'
 
-  const statusColor =
+  const statusClass =
     job.status === 'completed'
-      ? 'var(--success)'
+      ? 'text-green-500'
       : job.status === 'failed'
-        ? 'var(--danger)'
-        : 'var(--accent)'
+        ? 'text-destructive'
+        : 'text-primary'
+
+  const barClass =
+    job.status === 'completed'
+      ? 'bg-green-500'
+      : job.status === 'failed'
+        ? 'bg-destructive'
+        : 'bg-primary'
 
   return (
-    <div
-      className="p-3 rounded-lg"
-      style={{ backgroundColor: 'var(--bg-secondary)' }}
-    >
+    <div className="p-3 rounded-lg bg-card">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-sm font-medium" style={{ color: statusColor }}>
+        <span className={`text-sm font-medium ${statusClass}`}>
           {statusLabel}
         </span>
-        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+        <span className="text-xs text-muted-foreground">
           {job.progress.processed} / {job.progress.total} items
         </span>
       </div>
-      <div
-        className="w-full h-1.5 rounded-full overflow-hidden"
-        style={{ backgroundColor: 'var(--bg-input)' }}
-      >
+      <div className="w-full h-1.5 rounded-full overflow-hidden bg-input">
         <div
-          className="h-full rounded-full transition-all duration-300"
-          style={{
-            width: `${job.progress.percentage}%`,
-            backgroundColor: statusColor,
-          }}
+          className={`h-full rounded-full transition-all duration-300 ${barClass}`}
+          style={{ width: `${job.progress.percentage}%` }}
         />
       </div>
     </div>

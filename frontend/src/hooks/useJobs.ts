@@ -2,38 +2,13 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 import type { JobResponse, Proposal } from '../types'
 import { api } from '../api/client'
 
-const SESSION_STORAGE_KEY = 'webflow-seo-draft-texts'
-
-function loadDraftsFromStorage(): Map<string, string> {
-  try {
-    const raw = sessionStorage.getItem(SESSION_STORAGE_KEY)
-    if (raw) return new Map(JSON.parse(raw))
-  } catch {
-    /* ignore */
-  }
-  return new Map()
-}
-
-function saveDraftsToStorage(drafts: Map<string, string>) {
-  try {
-    sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify([...drafts]))
-  } catch {
-    /* ignore */
-  }
-}
-
 export function useJobs() {
   const [generating, setGenerating] = useState(false)
   const [currentJob, setCurrentJob] = useState<JobResponse | null>(null)
   const [proposals, setProposals] = useState<Proposal[]>([])
-  const [draftTexts, setDraftTexts] = useState<Map<string, string>>(loadDraftsFromStorage)
+  const [draftTexts, setDraftTexts] = useState<Map<string, string>>(new Map())
   const [generatedTexts, setGeneratedTexts] = useState<Map<string, string>>(new Map())
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  // Persist drafts to sessionStorage
-  useEffect(() => {
-    saveDraftsToStorage(draftTexts)
-  }, [draftTexts])
 
   // Cleanup polling on unmount
   useEffect(() => {

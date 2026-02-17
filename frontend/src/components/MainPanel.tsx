@@ -1,4 +1,5 @@
 import { Upload } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { ImageRow } from './ImageRow'
 import { ProgressBar } from './ProgressBar'
 import type { JobResponse, ApplyResult, ImageWithAltText } from '../types'
@@ -45,37 +46,19 @@ export function MainPanel({
   onApply,
 }: MainPanelProps) {
   return (
-    <main className="flex-1 flex flex-col min-w-0" style={{ backgroundColor: 'var(--bg-main)' }}>
+    <main className="flex-1 flex flex-col min-w-0 bg-background">
       {/* Header with actions */}
-      <header className="h-12 flex items-center justify-between px-4 shadow-sm shrink-0" style={{ backgroundColor: 'var(--bg-main)' }}>
-        <div className="flex items-center gap-2">
-          <span className="font-medium" style={{ color: 'var(--text-muted)' }}>#</span>
-          <h2 className="text-base font-bold" style={{ color: 'var(--text-header)' }}>
-            Image Optimizer
-          </h2>
-        </div>
+      <header className="h-12 flex items-center justify-between px-4 shadow-sm shrink-0 border-b">
+        <h2 className="text-base font-bold text-foreground">
+          Image Optimizer
+        </h2>
 
         <div className="flex items-center gap-2">
-          <button
+          <Button
             onClick={onGenerate}
             disabled={generating || selectedImages.size === 0}
-            className="flex items-center gap-2 px-3 py-1.5 rounded text-xs font-semibold transition-all"
-            style={{
-              backgroundColor: generating || selectedImages.size === 0 ? '#404249' : '#23A559',
-              color: 'white',
-              cursor: generating || selectedImages.size === 0 ? 'not-allowed' : 'pointer',
-              opacity: generating || selectedImages.size === 0 ? 0.6 : 1,
-            }}
-            onMouseEnter={(e) => {
-              if (!generating && selectedImages.size > 0) {
-                e.currentTarget.style.backgroundColor = '#1a8044'
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!generating && selectedImages.size > 0) {
-                e.currentTarget.style.backgroundColor = '#23A559'
-              }
-            }}
+            className="bg-green-600 hover:bg-green-700 text-white"
+            size="sm"
           >
             {generating ? (
               <>
@@ -85,28 +68,13 @@ export function MainPanel({
             ) : (
               <>Generate Alt Text ({selectedImages.size})</>
             )}
-          </button>
+          </Button>
 
           {hasProposals && (
-            <button
+            <Button
               onClick={onApply}
               disabled={applying || selectedImages.size === 0}
-              className="flex items-center gap-2 px-3 py-1.5 rounded text-xs font-semibold text-white transition-all shadow-lg"
-              style={{
-                backgroundColor: applying || selectedImages.size === 0 ? '#404249' : 'var(--accent-primary)',
-                cursor: applying || selectedImages.size === 0 ? 'not-allowed' : 'pointer',
-                opacity: applying || selectedImages.size === 0 ? 0.6 : 1,
-              }}
-              onMouseEnter={(e) => {
-                if (!applying && selectedImages.size > 0) {
-                  e.currentTarget.style.backgroundColor = 'var(--accent-hover)'
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!applying && selectedImages.size > 0) {
-                  e.currentTarget.style.backgroundColor = 'var(--accent-primary)'
-                }
-              }}
+              size="sm"
             >
               {applying ? (
                 <>
@@ -119,7 +87,7 @@ export function MainPanel({
                   Sync to Webflow
                 </>
               )}
-            </button>
+            </Button>
           )}
         </div>
       </header>
@@ -134,10 +102,7 @@ export function MainPanel({
       {/* Apply results */}
       {applyResults && applyResults.failure_count > 0 && (
         <div className="px-4 py-2">
-          <div
-            className="p-3 rounded text-sm"
-            style={{ backgroundColor: 'rgba(240, 178, 50, 0.1)', color: 'var(--warning)' }}
-          >
+          <div className="p-3 rounded text-sm bg-destructive/10 text-destructive">
             <p className="font-medium mb-1">
               Applied {applyResults.success_count} / {applyResults.success_count + applyResults.failure_count} updates
             </p>
@@ -154,10 +119,7 @@ export function MainPanel({
 
       {applyResults && applyResults.failure_count === 0 && (
         <div className="px-4 py-2">
-          <div
-            className="p-3 rounded text-sm"
-            style={{ backgroundColor: 'rgba(35, 165, 89, 0.1)', color: 'var(--success)' }}
-          >
+          <div className="p-3 rounded text-sm bg-green-500/10 text-green-500">
             Successfully applied {applyResults.success_count} alt text updates!
           </div>
         </div>
@@ -168,14 +130,14 @@ export function MainPanel({
         {visibleImages.length > 0 ? (
           <>
             {/* Info bar */}
-            <div className="px-4 py-3 border-b" style={{ backgroundColor: 'rgba(43, 45, 49, 0.3)', borderColor: 'var(--bg-muted)' }}>
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                Showing <span className="font-bold" style={{ color: 'var(--text-header)' }}>{visibleImages.length} images</span> from selected collections.
+            <div className="px-4 py-3 border-b bg-muted/30">
+              <p className="text-xs text-muted-foreground">
+                Showing <span className="font-bold text-foreground">{visibleImages.length} images</span> from selected collections.
               </p>
             </div>
 
             {/* Image rows */}
-            <div className="divide-y" style={{ '--tw-divide-opacity': '1', borderColor: 'var(--bg-muted)' } as React.CSSProperties}>
+            <div className="divide-y">
               {visibleImages.map((image) => (
                 <ImageRow
                   key={image.imageKey}
@@ -196,7 +158,7 @@ export function MainPanel({
             </div>
 
             {/* End marker */}
-            <div className="p-8 text-center text-xs" style={{ color: 'var(--text-muted)' }}>
+            <div className="p-8 text-center text-xs text-muted-foreground">
               You've reached the end of the collection.
             </div>
           </>
@@ -204,18 +166,17 @@ export function MainPanel({
           /* Empty state */
           <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
             <div className="w-48 h-48 mb-6 relative">
-              <div className="absolute inset-0 rounded-full animate-pulse" style={{ backgroundColor: 'rgba(88, 101, 242, 0.05)' }} />
+              <div className="absolute inset-0 rounded-full animate-pulse bg-primary/5" />
               <img
                 src="https://picsum.photos/id/160/400/400"
                 alt="Empty"
-                className="w-full h-full object-cover rounded-full grayscale opacity-20 border-4"
-                style={{ borderColor: 'var(--bg-muted)' }}
+                className="w-full h-full object-cover rounded-full grayscale opacity-20 border-4 border-muted"
               />
             </div>
-            <h3 className="text-xl font-bold mb-2" style={{ color: 'var(--text-header)' }}>
+            <h3 className="text-xl font-bold mb-2 text-foreground">
               Ready to optimize?
             </h3>
-            <p className="text-sm max-w-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-sm max-w-sm leading-relaxed text-muted-foreground">
               Select one or more collections from the sidebar to load and edit image alt text for SEO.
             </p>
           </div>

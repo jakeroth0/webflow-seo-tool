@@ -33,7 +33,23 @@ export function useItems() {
       }
       return next
     })
-  }, [])
+
+    // Auto-select/deselect all images for this item
+    const item = items.find((i) => i.id === itemId)
+    if (item) {
+      setSelectedImages((prev) => {
+        const next = new Set(prev)
+        const keys = item.images.map((img) => `${itemId}:${img.field_name}`)
+        const adding = !prev.has(keys[0])
+        if (adding) {
+          keys.forEach((k) => next.add(k))
+        } else {
+          keys.forEach((k) => next.delete(k))
+        }
+        return next
+      })
+    }
+  }, [items])
 
   const toggleSelectAll = useCallback(() => {
     setSelectedItems((prev) => {

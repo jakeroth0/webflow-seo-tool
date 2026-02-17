@@ -11,10 +11,7 @@ function AppContent() {
 
   if (isLoading) {
     return (
-      <div
-        className="min-h-screen flex items-center justify-center"
-        style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-muted)' }}
-      >
+      <div className="min-h-screen flex items-center justify-center bg-background text-muted-foreground">
         Loading...
       </div>
     )
@@ -22,13 +19,10 @@ function AppContent() {
 
   if (error && !user) {
     return (
-      <div
-        className="min-h-screen flex items-center justify-center"
-        style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--danger)' }}
-      >
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
-          <p className="text-lg font-semibold mb-2">Connection Error</p>
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{error}</p>
+          <p className="text-lg font-semibold mb-2 text-destructive">Connection Error</p>
+          <p className="text-sm text-muted-foreground">{error}</p>
         </div>
       </div>
     )
