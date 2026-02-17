@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Optional
 from app.models import CMSItemResponse, CMSItem, ImageWithAltText
 from app.services.webflow_client import WebflowClient, MockWebflowClient
-from app.config import settings
 from app.auth import get_current_user
+from app.key_manager import get_webflow_api_token, get_webflow_collection_id
 import logging
 
 logger = logging.getLogger(__name__)
@@ -12,8 +12,9 @@ router = APIRouter(prefix="/api/v1/items", tags=["items"])
 
 def get_webflow_client():
     """Dependency to get Webflow client (real if token available, otherwise mock)."""
-    if settings.webflow_api_token:
-        return WebflowClient(api_token=settings.webflow_api_token)
+    token = get_webflow_api_token()
+    if token:
+        return WebflowClient(api_token=token)
     logger.warning("No Webflow API token found, using mock client")
     return MockWebflowClient()
 
@@ -33,8 +34,8 @@ async def list_items(
 
     Returns items with all images and their current alt text.
     """
-    # Use collection_id from env if not provided
-    collection_id = collection_id or settings.webflow_collection_id
+    # Use collection_id from stored/env if not provided
+    collection_id = collection_id or get_webflow_collection_id()
     if not collection_id:
         raise HTTPException(
             status_code=400,
@@ -93,7 +94,11 @@ async def list_items(
         )
 
     except Exception as e:
-        logger.error(f"Failed to fetch items: {str(e)}")
+        logger.error(
+            "Failed to fetch items from Webflow",
+            extra={"collection_id": collection_id, "error": str(e)},
+            exc_info=True,
+        )
         raise HTTPException(
             status_code=500,
             detail=f"Failed to fetch items from Webflow: {str(e)}",

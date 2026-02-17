@@ -1,7 +1,8 @@
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import { Header } from './Header'
 import { Sidebar } from './Sidebar'
 import { MainPanel } from './MainPanel'
+import { SettingsPage } from '../pages/SettingsPage'
 import { Card, CardContent } from '@/components/ui/card'
 import { useAuth } from '../contexts/AuthContext'
 import { useItems } from '../hooks/useItems'
@@ -10,6 +11,7 @@ import { useApply } from '../hooks/useApply'
 
 export function AppLayout() {
   const { error, isLoading } = useAuth()
+  const [view, setView] = useState<'main' | 'settings'>('main')
 
   const {
     items,
@@ -97,33 +99,37 @@ export function AppLayout() {
 
   return (
     <div className="h-screen flex flex-col bg-background">
-      <Header />
-      <div className="flex-1 flex overflow-hidden">
-        <Sidebar
-          items={items}
-          loading={loading}
-          selectedItems={selectedItems}
-          onLoadItems={loadItems}
-          onToggleItem={toggleItemSelection}
-        />
-        <MainPanel
-          visibleImages={visibleImages}
-          selectedImages={selectedImages}
-          generating={generating}
-          applying={applying}
-          currentJob={currentJob}
-          applyResults={applyResults}
-          hasProposals={proposals.length > 0}
-          getDisplayText={getDisplayText}
-          hasDraft={hasDraft}
-          hasGenerated={hasGenerated}
-          onToggleOptIn={toggleImageOptIn}
-          onTextChange={updateDraftText}
-          onAcceptSuggestion={acceptSuggestion}
-          onGenerate={handleGenerate}
-          onApply={handleApply}
-        />
-      </div>
+      <Header onSettings={() => setView(view === 'settings' ? 'main' : 'settings')} />
+      {view === 'settings' ? (
+        <SettingsPage onBack={() => setView('main')} />
+      ) : (
+        <div className="flex-1 flex overflow-hidden">
+          <Sidebar
+            items={items}
+            loading={loading}
+            selectedItems={selectedItems}
+            onLoadItems={loadItems}
+            onToggleItem={toggleItemSelection}
+          />
+          <MainPanel
+            visibleImages={visibleImages}
+            selectedImages={selectedImages}
+            generating={generating}
+            applying={applying}
+            currentJob={currentJob}
+            applyResults={applyResults}
+            hasProposals={proposals.length > 0}
+            getDisplayText={getDisplayText}
+            hasDraft={hasDraft}
+            hasGenerated={hasGenerated}
+            onToggleOptIn={toggleImageOptIn}
+            onTextChange={updateDraftText}
+            onAcceptSuggestion={acceptSuggestion}
+            onGenerate={handleGenerate}
+            onApply={handleApply}
+          />
+        </div>
+      )}
     </div>
   )
 }

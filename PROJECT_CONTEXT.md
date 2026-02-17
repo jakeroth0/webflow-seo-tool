@@ -38,9 +38,8 @@ Internal web app that:
   - 10 new unit tests for CosmosStorage
 - [x] **Phase 5 M5.1: Frontend Decomposition + Dark Theme**
   - Decomposed 556-line App.tsx monolith into 15+ component files
-  - Discord-like dark theme via CSS custom properties
+  - Clean shadcn/ui dark theme (oklch color defaults)
   - Two-level selection: sidebar (projects) + per-image opt-in checkboxes
-  - Draft text persistence in sessionStorage (AI never overwrites user edits)
   - Custom hooks: useItems, useJobs, useApply
   - Character counter (125 max), accept/reject AI suggestions per image
 - [x] **Phase 5 M5.2: Backend Auth + User Management**
@@ -53,13 +52,23 @@ Internal web app that:
   - Cosmos DB containers: users (/user_id), settings (/scope)
   - 72 tests passing (41 new auth/admin tests + 31 existing)
 - [x] **Phase 5 M5.3: Frontend Auth Integration**
-  - Real login/register pages with dark theme styling
+  - Real login/register pages with shadcn/ui Card, Input, Button components
   - AuthContext: session restore via GET /me, 401 auto-logout
   - Conditional rendering: login/register when unauthenticated, app when logged in
   - Header: user display name, role badge, logout button
-- [ ] **Phase 5 M5.4: Structured Logging** <-- NEXT
-- [ ] **Phase 5 M5.5: Notification System**
-- [ ] **Phase 5 M5.6: Deployment to Render.com**
+- [x] **Phase 5 M5.4: Structured Logging**
+  - StructuredJSONFormatter: single-line JSON log output with timestamp, level, logger, message, module, function, line
+  - Extra fields via `extra={}` on all log calls (job_id, user_id, duration_ms, etc.)
+  - RequestLoggingMiddleware: 8-char hex X-Request-ID on every response, request timing
+  - 14 new tests (7 formatter + 7 middleware)
+- [x] **Phase 5 M5.5: Admin API Key Management**
+  - Fernet encryption (AES-128-CBC + HMAC-SHA256) for keys at rest
+  - Centralized key_manager: stored key > env-var fallback, graceful decryption failure
+  - Admin endpoints: GET/PUT /api/v1/admin/settings/api-keys (masked values + source)
+  - All client factories (items, jobs, tasks) use key_manager instead of direct settings access
+  - Frontend Settings page: Card-based form, masked current values, source badges, save/remove
+  - 18 new tests (7 encryption + 6 key_manager + 5 admin endpoint integration)
+- [ ] **Phase 5 M5.6: Deployment to Render.com** <-- NEXT
 
 ## Architecture
 
@@ -71,7 +80,7 @@ Internal web app that:
 5. Celery worker fetches items from Webflow, calls OpenAI Vision for each image
 6. Frontend polls `GET /api/v1/jobs/{job_id}` every 5 seconds, shows progress bar
 7. On completion, frontend fetches proposals via `GET /api/v1/jobs/{job_id}/proposals`
-8. User reviews, edits proposals (per-image cards, character counter, draft persistence)
+8. User reviews, edits proposals (per-image cards, character counter)
 9. User clicks "Apply to Webflow" -- `POST /api/v1/apply` updates Webflow CMS
 
 ### Docker Services (docker-compose.yml)
@@ -101,27 +110,34 @@ Internal web app that:
 | PATCH  | `/api/v1/admin/users/{id}`             | Admin    | Update role/status               |
 | GET    | `/api/v1/admin/settings`               | Admin    | Get app settings                 |
 | PUT    | `/api/v1/admin/settings/notifications` | Admin    | Update notification config       |
+| GET    | `/api/v1/admin/settings/api-keys`      | Admin    | Get masked API key status        |
+| PUT    | `/api/v1/admin/settings/api-keys`      | Admin    | Update stored API keys           |
 
 ## Project Structure
 ```
 backend/
   app/
-    main.py              # FastAPI app setup, CORS, router registration
+    main.py              # FastAPI app setup, CORS, middleware, router registration
     config.py            # Pydantic Settings (env vars: API keys, Redis, Cosmos, session)
     auth.py              # Password hashing, session CRUD, auth dependencies
+    encryption.py        # Fernet encrypt/decrypt/mask helpers (AES-128-CBC + HMAC-SHA256)
+    key_manager.py       # Centralized API key retrieval (stored > env-var fallback)
+    logging_config.py    # StructuredJSONFormatter, configure_logging()
+    middleware.py        # RequestLoggingMiddleware (X-Request-ID, request timing)
     celery_app.py        # Celery config (Redis broker, JSON serialization, 30min timeout)
     cosmos_storage.py    # CosmosStorage class (supports custom partition key fields, list_all)
     storage.py           # Storage factory: CosmosStorage if configured, else RedisStorage
     tasks.py             # Celery task: generate_alt_text_task (async wrapper)
     models/
       __init__.py        # Re-exports all models
+      api_keys.py        # ApiKeysUpdate, ApiKeyStatus, ApiKeysResponse
       cms_item.py        # ImageWithAltText, CMSItem, CMSItemResponse
       job.py             # JobStatus enum, CreateJobRequest, JobProgress, Job, JobResponse
       proposal.py        # Proposal, ProposalResponse, ApplyProposalRequest/Response
       user.py            # UserRole, UserCreate, UserLogin, UserInDB, UserResponse, UserUpdate
     routers/
       auth.py            # POST register/login/logout, GET me
-      admin.py           # GET/POST/PATCH users, GET/PUT settings (admin only)
+      admin.py           # GET/POST/PATCH users, GET/PUT settings + api-keys (admin only)
       items.py           # GET /api/v1/items (auth required)
       jobs.py            # POST /generate, GET /jobs/{id}, GET /proposals, POST /apply (auth)
     services/
@@ -135,10 +151,13 @@ backend/
       unit/test_webflow_client.py          # 3 tests: mock client
       unit/test_cosmos_storage.py          # 10 tests: CosmosStorage interface
       unit/test_auth.py                    # 9 tests: password hashing, sessions
+      unit/test_logging.py                 # 14 tests: JSON formatter + request middleware
+      unit/test_encryption.py              # 7 tests: encrypt/decrypt roundtrip, masking
+      unit/test_key_manager.py             # 6 tests: stored > env fallback, save/remove
       integration/test_items_endpoint.py   # 4 tests: items API
       integration/test_jobs_endpoint.py    # 4 tests: jobs API
       integration/test_auth_endpoints.py   # 16 tests: auth flow + protected endpoints
-      integration/test_admin_endpoints.py  # 16 tests: user CRUD, settings, last-admin
+      integration/test_admin_endpoints.py  # 21 tests: user CRUD, settings, api-keys, last-admin
   scripts/
     init_cosmos.py       # One-time setup: create database + containers
   requirements.txt
@@ -154,9 +173,9 @@ frontend/
     hooks/useItems.ts    # Items loading, project selection, image opt-in
     hooks/useJobs.ts     # Generation, polling, draft/generated text management
     hooks/useApply.ts    # Apply proposals to Webflow
-    components/          # Header, Sidebar, ImageCard, ImageGrid, ActionBar, etc.
-    pages/               # LoginPage, RegisterPage
-    index.css            # Dark theme CSS custom properties
+    components/          # Header, Sidebar, MainPanel, ImageRow, ProgressBar, etc.
+    pages/               # LoginPage, RegisterPage, SettingsPage
+    index.css            # shadcn/ui oklch dark theme defaults
   Dockerfile             # Multi-stage: Node build -> Nginx serve
 
 docker-compose.yml       # 4 services: redis, api, celery, frontend
@@ -168,13 +187,14 @@ PROJECT_CONTEXT.md       # This file
 - **AI:** OpenAI gpt-4o-mini (Vision) -- generates SEO alt text, max 125 chars
 - **External API:** Webflow CMS API v2 (httpx client, tenacity retries)
 - **Auth:** bcrypt password hashing + HMAC-signed session cookies (Redis-backed, HttpOnly)
+- **Encryption:** Fernet (AES-128-CBC + HMAC-SHA256) for API keys at rest
 - **Storage:** Azure Cosmos DB for NoSQL (serverless, containers: jobs, proposals, users, settings)
 - **Queue:** Celery 5.4 + Redis 7 (broker + result backend + sessions)
-- **Frontend:** React 19 + TypeScript, Tailwind CSS v4, Vite 7
+- **Frontend:** React 19 + TypeScript, shadcn/ui, Tailwind CSS v4, Vite 7
 - **Containerization:** Docker + docker-compose (4 services)
-- **Testing:** pytest, pytest-asyncio, FastAPI TestClient (72 tests passing)
+- **Testing:** pytest, pytest-asyncio, FastAPI TestClient (104 tests passing)
 
-## Test Summary (72 passing)
+## Test Summary (104 passing)
 ```
 test_main.py:                2 (health check, root endpoint)
 test_models.py:              6 (CMS item, job request, progress, proposal validation)
@@ -182,21 +202,24 @@ test_config.py:              2 (defaults, env override)
 test_webflow_client.py:      3 (mock get, mock update, close)
 test_cosmos_storage.py:     10 (get, set, delete, contains, getitem, setitem, KeyError)
 test_auth.py:                9 (password hashing, session create/get/delete)
+test_logging.py:            14 (JSON formatter, request middleware, X-Request-ID)
+test_encryption.py:          7 (encrypt/decrypt roundtrip, invalid ciphertext, masking)
+test_key_manager.py:         6 (stored > env fallback, decryption failure, save/remove)
 test_items_endpoint.py:      4 (list items, pagination, validation)
 test_jobs_endpoint.py:       4 (create job, get status, validation)
 test_auth_endpoints.py:     16 (register, login, logout, me, protected endpoints)
-test_admin_endpoints.py:    16 (user CRUD, invite, roles, settings, last-admin protection)
+test_admin_endpoints.py:    21 (user CRUD, invite, roles, settings, api-keys, last-admin)
 ```
 
 ## Environment Variables (backend/.env)
 ```bash
-WEBFLOW_API_TOKEN=your_token_here
-WEBFLOW_COLLECTION_ID=your_collection_id_here
-OPENAI_API_KEY=your_key_here
+WEBFLOW_API_TOKEN=your_token_here        # Can also be set via admin UI
+WEBFLOW_COLLECTION_ID=your_collection_id # Can also be set via admin UI
+OPENAI_API_KEY=your_key_here             # Can also be set via admin UI
 REDIS_URL=redis://localhost:6379/0  # Auto-configured in Docker as redis://redis:6379/0
 COSMOS_DB_URL=https://your-account.documents.azure.com:443/
 COSMOS_DB_KEY=your_primary_key_here
-SESSION_SECRET_KEY=change-me-in-production
+SESSION_SECRET_KEY=change-me-in-production  # Also used to derive Fernet encryption key
 # Optional (defaults shown):
 # SESSION_TTL_SECONDS=86400
 # COSMOS_DB_DATABASE=webflow-seo-tool
@@ -228,10 +251,11 @@ docker compose run --rm api python -m pytest app/tests/ -v
 
 ## Key Design Decisions
 - **Opt-in apply:** Users must explicitly select images and click apply -- no automatic CMS writes
-- **Draft persistence:** User-typed text stored in sessionStorage, never overwritten by AI generation
 - **Two-level selection:** Sidebar selects projects (visibility), per-image checkboxes control inclusion
 - **HTTP-only session cookies:** XSS-immune, Redis-backed sessions with HMAC-signed IDs (not JWT)
 - **First user = admin:** Single-tenant model, first registered user gets admin role
+- **Encrypted API keys:** Admin can store keys via UI (Fernet encrypted in settings_db), env vars as fallback
+- **Key retrieval priority:** Stored (encrypted) key > environment variable > None
 - **Mock fallbacks:** All external services (Webflow, OpenAI) have mock clients for dev/testing
 - **Cosmos DB with Redis fallback:** Storage factory tries Cosmos DB first, falls back to Redis
 - **Dict-like storage interface:** CosmosStorage, RedisStorage, and InMemoryStorage share same API

@@ -8,10 +8,10 @@ from app.models import (
     ApplyProposalResponse,
 )
 from app.services.webflow_client import WebflowClient, MockWebflowClient
-from app.config import settings
 from app.tasks import generate_alt_text_task
 from app.storage import jobs_db, proposals_db
 from app.auth import get_current_user
+from app.key_manager import get_webflow_api_token, get_webflow_collection_id
 import uuid
 from datetime import datetime
 import logging
@@ -23,8 +23,9 @@ router = APIRouter(prefix="/api/v1", tags=["jobs"])
 
 def get_webflow_client():
     """Get Webflow client (real if token available, otherwise mock)."""
-    if settings.webflow_api_token:
-        return WebflowClient(api_token=settings.webflow_api_token)
+    token = get_webflow_api_token()
+    if token:
+        return WebflowClient(api_token=token)
     return MockWebflowClient()
 
 
@@ -36,8 +37,8 @@ async def create_generation_job(request: CreateJobRequest, current_user: dict = 
     Returns immediately with a job_id. Alt text generation happens in background.
     Use GET /jobs/{job_id} to poll for completion.
     """
-    # Use collection_id from request or env
-    collection_id = request.collection_id or settings.webflow_collection_id
+    # Use collection_id from request, stored, or env
+    collection_id = request.collection_id or get_webflow_collection_id()
     if not collection_id:
         raise HTTPException(
             status_code=400,
@@ -71,7 +72,15 @@ async def create_generation_job(request: CreateJobRequest, current_user: dict = 
     # Dispatch Celery task for background processing
     generate_alt_text_task.delay(job_id, collection_id, request.item_ids)
 
-    logger.info(f"Created job {job_id} for {len(request.item_ids)} items (dispatched to Celery)")
+    logger.info(
+        "Generation job created",
+        extra={
+            "job_id": job_id,
+            "user_id": current_user["user_id"],
+            "item_count": len(request.item_ids),
+            "collection_id": collection_id,
+        },
+    )
 
     return JobResponse(
         job_id=job_id,
@@ -136,7 +145,7 @@ async def apply_proposals(request: ApplyProposalRequest, current_user: dict = De
     Groups updates by item_id and applies all field changes per item in a single request.
     Returns success/failure counts and detailed results.
     """
-    collection_id = settings.webflow_collection_id
+    collection_id = get_webflow_collection_id()
     if not collection_id:
         raise HTTPException(
             status_code=400,
@@ -160,7 +169,10 @@ async def apply_proposals(request: ApplyProposalRequest, current_user: dict = De
     # Apply updates item by item
     for item_id, field_data in updates_by_item.items():
         try:
-            logger.info(f"Updating item {item_id} with {len(field_data)} fields")
+            logger.info(
+                "Applying alt text to Webflow item",
+                extra={"item_id": item_id, "field_count": len(field_data), "user_id": current_user["user_id"]},
+            )
             response = await webflow_client.update_item(
                 collection_id=collection_id,
                 item_id=item_id,
@@ -176,7 +188,11 @@ async def apply_proposals(request: ApplyProposalRequest, current_user: dict = De
             })
 
         except Exception as e:
-            logger.error(f"Failed to update item {item_id}: {str(e)}")
+            logger.error(
+                "Failed to apply alt text to Webflow item",
+                extra={"item_id": item_id, "error": str(e)},
+                exc_info=True,
+            )
             failure_count += len(field_data)
             results.append({
                 "item_id": item_id,

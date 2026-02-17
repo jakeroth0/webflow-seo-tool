@@ -1,11 +1,15 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 import logging
 
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
 from app.config import settings
+from app.logging_config import configure_logging
+from app.middleware import RequestLoggingMiddleware
 from app.routers import items, jobs, auth, admin
 
-logging.basicConfig(level=settings.log_level)
+# Configure structured JSON logging before anything else creates loggers
+configure_logging(settings.log_level)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(
@@ -14,6 +18,8 @@ app = FastAPI(
     description="Generate and apply SEO-friendly alt text for Webflow CMS",
 )
 
+# Middleware is applied in reverse order — RequestLogging runs outermost (first in, last out)
+app.add_middleware(RequestLoggingMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,

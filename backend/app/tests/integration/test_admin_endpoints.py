@@ -206,3 +206,70 @@ class TestSettings:
         user_cookies = register_regular_user(client, None)
         resp = client.get("/api/v1/admin/settings", cookies=user_cookies)
         assert resp.status_code == 403
+
+
+class TestApiKeyManagement:
+    @pytest.fixture(autouse=True)
+    def _clear_env_keys(self):
+        """Ensure env-var keys don't leak into API key tests."""
+        mock_settings = MagicMock(
+            webflow_api_token=None,
+            webflow_collection_id=None,
+            openai_api_key=None,
+            session_secret_key="change-me-in-production",
+        )
+        with patch("app.key_manager.settings", mock_settings):
+            yield
+
+    def test_get_default_empty(self, client):
+        admin_cookies = register_admin(client)
+        resp = client.get("/api/v1/admin/settings/api-keys", cookies=admin_cookies)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["webflow_api_token"]["source"] is None
+        assert data["openai_api_key"]["source"] is None
+
+    def test_put_then_get_returns_masked(self, client):
+        admin_cookies = register_admin(client)
+        resp = client.put("/api/v1/admin/settings/api-keys", cookies=admin_cookies, json={
+            "webflow_api_token": "wf-1234567890",
+        })
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["webflow_api_token"]["source"] == "stored"
+        assert data["webflow_api_token"]["masked_value"].endswith("7890")
+        assert "wf-" not in data["webflow_api_token"]["masked_value"]
+
+    def test_partial_update_preserves_others(self, client):
+        admin_cookies = register_admin(client)
+        # Set two keys
+        client.put("/api/v1/admin/settings/api-keys", cookies=admin_cookies, json={
+            "webflow_api_token": "wf-token",
+            "openai_api_key": "sk-openai",
+        })
+        # Update only one
+        client.put("/api/v1/admin/settings/api-keys", cookies=admin_cookies, json={
+            "webflow_api_token": "wf-updated",
+        })
+        resp = client.get("/api/v1/admin/settings/api-keys", cookies=admin_cookies)
+        data = resp.json()
+        assert data["webflow_api_token"]["source"] == "stored"
+        assert data["openai_api_key"]["source"] == "stored"
+
+    def test_empty_string_removes_key(self, client):
+        admin_cookies = register_admin(client)
+        client.put("/api/v1/admin/settings/api-keys", cookies=admin_cookies, json={
+            "webflow_api_token": "wf-token",
+        })
+        client.put("/api/v1/admin/settings/api-keys", cookies=admin_cookies, json={
+            "webflow_api_token": "",
+        })
+        resp = client.get("/api/v1/admin/settings/api-keys", cookies=admin_cookies)
+        data = resp.json()
+        assert data["webflow_api_token"]["source"] is None
+
+    def test_non_admin_gets_403(self, client):
+        register_admin(client)
+        user_cookies = register_regular_user(client, None)
+        resp = client.get("/api/v1/admin/settings/api-keys", cookies=user_cookies)
+        assert resp.status_code == 403

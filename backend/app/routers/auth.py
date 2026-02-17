@@ -57,7 +57,10 @@ async def register(body: UserCreate, response: Response):
     signed_id = create_session(user_id, role.value, body.email)
     set_session_cookie(response, signed_id)
 
-    logger.info(f"User registered: {user_id} ({body.email}) role={role.value}")
+    logger.info(
+        "User registered",
+        extra={"user_id": user_id, "email": body.email, "role": role.value},
+    )
 
     return UserResponse(
         user_id=user_id,
@@ -86,7 +89,7 @@ async def login(body: UserLogin, response: Response):
     signed_id = create_session(user["user_id"], user["role"], user["email"])
     set_session_cookie(response, signed_id)
 
-    logger.info(f"User logged in: {user['user_id']}")
+    logger.info("User logged in", extra={"user_id": user["user_id"], "email": user["email"]})
 
     return UserResponse(
         user_id=user["user_id"],
@@ -104,7 +107,7 @@ async def logout(response: Response, current_user: dict = Depends(get_current_us
     # The session_id cookie value is the signed token — we need it to delete
     # But get_current_user already validated. We clear cookie regardless.
     clear_session_cookie(response)
-    logger.info(f"User logged out: {current_user['user_id']}")
+    logger.info("User logged out", extra={"user_id": current_user["user_id"]})
     return {"message": "Logged out"}
 
 

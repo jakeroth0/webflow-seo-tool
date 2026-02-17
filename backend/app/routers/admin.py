@@ -5,9 +5,10 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from app.models import UserResponse, UserUpdate, UserRole, InviteUserRequest
+from app.models import UserResponse, UserUpdate, UserRole, InviteUserRequest, ApiKeysUpdate, ApiKeysResponse
 from app.storage import users_db, settings_db
 from app.auth import hash_password, require_admin
+from app.key_manager import get_masked_keys, save_keys
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
@@ -56,7 +57,15 @@ async def invite_user(body: InviteUserRequest, current_user: dict = Depends(requ
     }
     users_db.set(user_id, user_data)
 
-    logger.info(f"Admin {current_user['user_id']} invited user {user_id} ({body.email}) role={body.role.value}")
+    logger.info(
+        "Admin invited user",
+        extra={
+            "admin_id": current_user["user_id"],
+            "invited_user_id": user_id,
+            "email": body.email,
+            "role": body.role.value,
+        },
+    )
 
     return UserResponse(
         user_id=user_id,
@@ -100,7 +109,10 @@ async def update_user(user_id: str, body: UserUpdate, current_user: dict = Depen
 
     users_db.set(user_id, user)
 
-    logger.info(f"Admin {current_user['user_id']} updated user {user_id}")
+    logger.info(
+        "Admin updated user",
+        extra={"admin_id": current_user["user_id"], "updated_user_id": user_id},
+    )
 
     return UserResponse(
         user_id=user["user_id"],
@@ -132,5 +144,26 @@ async def get_settings(current_user: dict = Depends(require_admin)):
 async def update_notification_settings(body: dict, current_user: dict = Depends(require_admin)):
     """Update notification settings (admin only)."""
     settings_db.set(NOTIFICATION_SETTINGS_KEY, body)
-    logger.info(f"Admin {current_user['user_id']} updated notification settings")
+    logger.info("Admin updated notification settings", extra={"admin_id": current_user["user_id"]})
     return {"message": "Settings updated", "notifications": body}
+
+
+# --- API Key Management ---
+
+@router.get("/settings/api-keys", response_model=ApiKeysResponse)
+async def get_api_keys(current_user: dict = Depends(require_admin)):
+    """Get masked API key values and their sources (admin only)."""
+    return get_masked_keys()
+
+
+@router.put("/settings/api-keys", response_model=ApiKeysResponse)
+async def update_api_keys(body: ApiKeysUpdate, current_user: dict = Depends(require_admin)):
+    """Update stored API keys (admin only).
+
+    - ``null`` field → leave unchanged
+    - empty string ``""`` → remove stored key (revert to env var)
+    - non-empty string → encrypt and store
+    """
+    save_keys(body.model_dump())
+    logger.info("Admin updated API keys", extra={"admin_id": current_user["user_id"]})
+    return get_masked_keys()
