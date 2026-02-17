@@ -56,7 +56,15 @@ async def invite_user(body: InviteUserRequest, current_user: dict = Depends(requ
     }
     users_db.set(user_id, user_data)
 
-    logger.info(f"Admin {current_user['user_id']} invited user {user_id} ({body.email}) role={body.role.value}")
+    logger.info(
+        "Admin invited user",
+        extra={
+            "admin_id": current_user["user_id"],
+            "invited_user_id": user_id,
+            "email": body.email,
+            "role": body.role.value,
+        },
+    )
 
     return UserResponse(
         user_id=user_id,
@@ -100,7 +108,10 @@ async def update_user(user_id: str, body: UserUpdate, current_user: dict = Depen
 
     users_db.set(user_id, user)
 
-    logger.info(f"Admin {current_user['user_id']} updated user {user_id}")
+    logger.info(
+        "Admin updated user",
+        extra={"admin_id": current_user["user_id"], "updated_user_id": user_id},
+    )
 
     return UserResponse(
         user_id=user["user_id"],
@@ -132,5 +143,5 @@ async def get_settings(current_user: dict = Depends(require_admin)):
 async def update_notification_settings(body: dict, current_user: dict = Depends(require_admin)):
     """Update notification settings (admin only)."""
     settings_db.set(NOTIFICATION_SETTINGS_KEY, body)
-    logger.info(f"Admin {current_user['user_id']} updated notification settings")
+    logger.info("Admin updated notification settings", extra={"admin_id": current_user["user_id"]})
     return {"message": "Settings updated", "notifications": body}

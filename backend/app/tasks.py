@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import time
 import uuid
 from datetime import datetime
 from app.celery_app import celery_app
@@ -38,7 +39,11 @@ async def process_job_async(job_id: str, collection_id: str, item_ids: list[str]
         job_data = jobs_db[job_id]
         job_data["status"] = JobStatus.PROCESSING
         jobs_db[job_id] = job_data
-        logger.info(f"Starting job {job_id} with {len(item_ids)} items")
+        job_start = time.monotonic()
+        logger.info(
+            "Job started",
+            extra={"job_id": job_id, "item_count": len(item_ids)},
+        )
 
         webflow_client = get_webflow_client()
         ai_generator = get_alt_text_generator()
@@ -61,7 +66,7 @@ async def process_job_async(job_id: str, collection_id: str, item_ids: list[str]
             try:
                 raw_item = items_map.get(item_id)
                 if not raw_item:
-                    logger.warning(f"Item {item_id} not found, skipping")
+                    logger.warning("Item not found in Webflow, skipping", extra={"job_id": job_id, "item_id": item_id})
                     continue
 
                 field_data = raw_item.get("fieldData", {})
@@ -112,7 +117,11 @@ async def process_job_async(job_id: str, collection_id: str, item_ids: list[str]
                 jobs_db[job_id] = job_data
 
             except Exception as e:
-                logger.error(f"Error processing item {item_id}: {str(e)}")
+                logger.error(
+                    "Error processing item",
+                    extra={"job_id": job_id, "item_id": item_id, "error": str(e)},
+                    exc_info=True,
+                )
                 continue
 
         # Store proposals (serialize Pydantic models to dicts)
@@ -122,12 +131,20 @@ async def process_job_async(job_id: str, collection_id: str, item_ids: list[str]
         job_data = jobs_db[job_id]
         job_data["status"] = JobStatus.COMPLETED
         jobs_db[job_id] = job_data
-        logger.info(f"Job {job_id} completed with {len(proposals)} proposals")
+        duration_ms = round((time.monotonic() - job_start) * 1000, 2)
+        logger.info(
+            "Job completed",
+            extra={"job_id": job_id, "proposal_count": len(proposals), "duration_ms": duration_ms},
+        )
 
         await webflow_client.close()
 
     except Exception as e:
-        logger.error(f"Job {job_id} failed: {str(e)}")
+        logger.error(
+            "Job failed",
+            extra={"job_id": job_id, "error": str(e)},
+            exc_info=True,
+        )
         job_data = jobs_db[job_id]
         job_data["status"] = JobStatus.FAILED
         job_data["error_message"] = str(e)
@@ -141,7 +158,7 @@ def generate_alt_text_task(self, job_id: str, collection_id: str, item_ids: list
 
     This wraps the async processing logic to run in Celery worker.
     """
-    logger.info(f"Celery task started for job {job_id}")
+    logger.info("Celery task started", extra={"job_id": job_id})
 
     # Run the async logic in a new event loop
     # (Celery workers run sync code, so we need to create a loop)
@@ -155,5 +172,5 @@ def generate_alt_text_task(self, job_id: str, collection_id: str, item_ids: list
     finally:
         loop.close()
 
-    logger.info(f"Celery task completed for job {job_id}")
+    logger.info("Celery task completed", extra={"job_id": job_id})
     return {"job_id": job_id, "status": "completed"}

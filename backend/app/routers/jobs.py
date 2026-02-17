@@ -71,7 +71,15 @@ async def create_generation_job(request: CreateJobRequest, current_user: dict = 
     # Dispatch Celery task for background processing
     generate_alt_text_task.delay(job_id, collection_id, request.item_ids)
 
-    logger.info(f"Created job {job_id} for {len(request.item_ids)} items (dispatched to Celery)")
+    logger.info(
+        "Generation job created",
+        extra={
+            "job_id": job_id,
+            "user_id": current_user["user_id"],
+            "item_count": len(request.item_ids),
+            "collection_id": collection_id,
+        },
+    )
 
     return JobResponse(
         job_id=job_id,
@@ -160,7 +168,10 @@ async def apply_proposals(request: ApplyProposalRequest, current_user: dict = De
     # Apply updates item by item
     for item_id, field_data in updates_by_item.items():
         try:
-            logger.info(f"Updating item {item_id} with {len(field_data)} fields")
+            logger.info(
+                "Applying alt text to Webflow item",
+                extra={"item_id": item_id, "field_count": len(field_data), "user_id": current_user["user_id"]},
+            )
             response = await webflow_client.update_item(
                 collection_id=collection_id,
                 item_id=item_id,
@@ -176,7 +187,11 @@ async def apply_proposals(request: ApplyProposalRequest, current_user: dict = De
             })
 
         except Exception as e:
-            logger.error(f"Failed to update item {item_id}: {str(e)}")
+            logger.error(
+                "Failed to apply alt text to Webflow item",
+                extra={"item_id": item_id, "error": str(e)},
+                exc_info=True,
+            )
             failure_count += len(field_data)
             results.append({
                 "item_id": item_id,

@@ -93,7 +93,11 @@ async def list_items(
         )
 
     except Exception as e:
-        logger.error(f"Failed to fetch items: {str(e)}")
+        logger.error(
+            "Failed to fetch items from Webflow",
+            extra={"collection_id": collection_id, "error": str(e)},
+            exc_info=True,
+        )
         raise HTTPException(
             status_code=500,
             detail=f"Failed to fetch items from Webflow: {str(e)}",
