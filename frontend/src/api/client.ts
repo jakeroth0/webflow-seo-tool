@@ -1,4 +1,6 @@
-const BASE_URL = ''
+// In production (Render), set VITE_API_URL to the backend service URL.
+// In local Docker dev, leave unset — nginx proxies /api/ to the backend.
+const BASE_URL = import.meta.env.VITE_API_URL ?? ''
 
 interface FetchOptions extends RequestInit {
   json?: unknown

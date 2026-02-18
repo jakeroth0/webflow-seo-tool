@@ -1,0 +1,110 @@
+services:
+  # ── Redis (Celery broker + session store) ─────────────────────────────────
+  - type: redis
+    name: webflow-seo-redis
+    plan: free
+    maxmemoryPolicy: noeviction
+
+  # ── FastAPI backend ────────────────────────────────────────────────────────
+  - type: web
+    name: webflow-seo-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: webflow-seo-redis
+          property: connectionString
+      # Generate a random secret once; Celery worker shares it via fromService
+      - key: SESSION_SECRET_KEY
+        generateValue: true
+      # Set CORS_ORIGINS to your frontend's Render URL after first deploy, e.g.:
+      # ["https://webflow-seo-frontend.onrender.com"]
+      - key: CORS_ORIGINS
+        sync: false
+      # Cosmos DB — fill in after deploy (or store via admin UI)
+      - key: COSMOS_DB_URL
+        sync: false
+      - key: COSMOS_DB_KEY
+        sync: false
+      # Optional: pre-seed API keys here or use the admin Settings UI instead
+      - key: WEBFLOW_API_TOKEN
+        sync: false
+      - key: WEBFLOW_COLLECTION_ID
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: ENVIRONMENT
+        value: production
+      - key: LOG_LEVEL
+        value: INFO
+
+  # ── Celery background worker ───────────────────────────────────────────────
+  - type: worker
+    name: webflow-seo-celery
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    startCommand: celery -A app.celery_app worker --loglevel=info --concurrency=2
+    plan: free
+    envVars:
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: webflow-seo-redis
+          property: connectionString
+      # Must match the API's key so encrypted API keys decrypt correctly
+      - key: SESSION_SECRET_KEY
+        fromService:
+          type: web
+          name: webflow-seo-api
+          envVarKey: SESSION_SECRET_KEY
+      - key: COSMOS_DB_URL
+        fromService:
+          type: web
+          name: webflow-seo-api
+          envVarKey: COSMOS_DB_URL
+      - key: COSMOS_DB_KEY
+        fromService:
+          type: web
+          name: webflow-seo-api
+          envVarKey: COSMOS_DB_KEY
+      - key: WEBFLOW_API_TOKEN
+        fromService:
+          type: web
+          name: webflow-seo-api
+          envVarKey: WEBFLOW_API_TOKEN
+      - key: WEBFLOW_COLLECTION_ID
+        fromService:
+          type: web
+          name: webflow-seo-api
+          envVarKey: WEBFLOW_COLLECTION_ID
+      - key: OPENAI_API_KEY
+        fromService:
+          type: web
+          name: webflow-seo-api
+          envVarKey: OPENAI_API_KEY
+      - key: ENVIRONMENT
+        value: production
+
+  # ── React frontend (static site) ──────────────────────────────────────────
+  - type: web
+    name: webflow-seo-frontend
+    runtime: static
+    buildCommand: cd frontend && npm ci && npm run build
+    staticPublishPath: ./frontend/dist
+    plan: free
+    # Set VITE_API_URL to your API's Render URL, e.g.:
+    # https://webflow-seo-api.onrender.com
+    # This is a build-time variable so Render must rebuild after changing it.
+    envVars:
+      - key: VITE_API_URL
+        sync: false
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
