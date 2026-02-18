@@ -122,19 +122,14 @@ def get_current_user(
     token = None
     if authorization and authorization.startswith("Bearer "):
         token = authorization[7:]
-        logger.info("Auth via Authorization header")
     elif session_id:
         token = session_id
-        logger.info("Auth via session cookie")
-    else:
-        logger.warning("No auth credentials found (no Authorization header, no session cookie)")
 
     if not token:
         raise HTTPException(status_code=401, detail="Not authenticated")
 
     session = get_session(token)
     if not session:
-        logger.warning("Session lookup failed for provided token")
         raise HTTPException(status_code=401, detail="Session expired or invalid")
 
     return session
