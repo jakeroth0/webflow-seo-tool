@@ -10,7 +10,7 @@ from app.models import (
 from app.services.webflow_client import WebflowClient, MockWebflowClient
 from app.tasks import generate_alt_text_task
 from app.storage import jobs_db, proposals_db
-from app.auth import require_admin
+from app.auth import get_current_user
 from app.key_manager import get_webflow_api_token, get_webflow_collection_id
 import uuid
 from datetime import datetime
@@ -30,7 +30,7 @@ def get_webflow_client():
 
 
 @router.post("/generate", response_model=JobResponse)
-async def create_generation_job(request: CreateJobRequest, current_user: dict = Depends(require_admin)):
+async def create_generation_job(request: CreateJobRequest, current_user: dict = Depends(get_current_user)):
     """
     Create a new job to generate alt text for selected items.
 
@@ -92,7 +92,7 @@ async def create_generation_job(request: CreateJobRequest, current_user: dict = 
 
 
 @router.get("/jobs/{job_id}", response_model=JobResponse)
-async def get_job_status(job_id: str, current_user: dict = Depends(require_admin)):
+async def get_job_status(job_id: str, current_user: dict = Depends(get_current_user)):
     """
     Get the status of a generation job.
 
@@ -112,7 +112,7 @@ async def get_job_status(job_id: str, current_user: dict = Depends(require_admin
 
 
 @router.get("/jobs/{job_id}/proposals")
-async def get_job_proposals(job_id: str, current_user: dict = Depends(require_admin)):
+async def get_job_proposals(job_id: str, current_user: dict = Depends(get_current_user)):
     """
     Get generated alt text proposals for a completed job.
 
@@ -139,7 +139,7 @@ async def get_job_proposals(job_id: str, current_user: dict = Depends(require_ad
 
 
 @router.post("/apply", response_model=ApplyProposalResponse)
-async def apply_proposals(request: ApplyProposalRequest, current_user: dict = Depends(require_admin)):
+async def apply_proposals(request: ApplyProposalRequest, current_user: dict = Depends(get_current_user)):
     """
     Apply approved alt text proposals to Webflow CMS.
 

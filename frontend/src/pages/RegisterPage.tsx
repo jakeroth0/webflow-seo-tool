@@ -14,6 +14,7 @@ export function RegisterPage({ onSwitchToLogin }: Props) {
   const [displayName, setDisplayName] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [inviteCode, setInviteCode] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -28,7 +29,7 @@ export function RegisterPage({ onSwitchToLogin }: Props) {
 
     setLoading(true)
     try {
-      await register(email, password, displayName)
+      await register(email, password, displayName, inviteCode || undefined)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed')
     } finally {
@@ -66,6 +67,18 @@ export function RegisterPage({ onSwitchToLogin }: Props) {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+              />
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-xs font-semibold mb-1.5 uppercase text-muted-foreground">
+                Invite Code
+              </label>
+              <Input
+                type="text"
+                value={inviteCode}
+                onChange={(e) => setInviteCode(e.target.value)}
+                placeholder="Leave blank if not required"
               />
             </div>
 

@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
 
 NOTIFICATION_SETTINGS_KEY = "notifications"
+INVITE_CODE_KEY = "invite_code"
 
 
 # --- User Management ---
@@ -146,6 +147,37 @@ async def update_notification_settings(body: dict, current_user: dict = Depends(
     settings_db.set(NOTIFICATION_SETTINGS_KEY, body)
     logger.info("Admin updated notification settings", extra={"admin_id": current_user["user_id"]})
     return {"message": "Settings updated", "notifications": body}
+
+
+# --- Invite Code Management ---
+
+@router.get("/settings/invite-code")
+async def get_invite_code(current_user: dict = Depends(require_admin)):
+    """Get current invite code (admin only)."""
+    stored = settings_db.get(INVITE_CODE_KEY)
+    return {
+        "code": stored.get("code", "") if stored else "",
+        "enabled": bool(stored and stored.get("code")),
+    }
+
+
+@router.put("/settings/invite-code")
+async def update_invite_code(body: dict, current_user: dict = Depends(require_admin)):
+    """Set or clear the invite code (admin only).
+
+    - ``{"code": "my-secret"}`` → enable invite code
+    - ``{"code": ""}`` → disable (open registration)
+    """
+    code = body.get("code", "").strip()
+    settings_db.set(INVITE_CODE_KEY, {"code": code})
+    logger.info(
+        "Admin updated invite code",
+        extra={"admin_id": current_user["user_id"], "enabled": bool(code)},
+    )
+    return {
+        "code": code,
+        "enabled": bool(code),
+    }
 
 
 # --- API Key Management ---
