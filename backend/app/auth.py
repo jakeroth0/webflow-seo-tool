@@ -90,20 +90,25 @@ def delete_session(signed_id: str) -> None:
 
 def set_session_cookie(response: Response, signed_id: str) -> None:
     """Set the session cookie on the response."""
-    secure = settings.environment == "production"
+    is_prod = settings.environment == "production"
     response.set_cookie(
         key="session_id",
         value=signed_id,
         httponly=True,
-        secure=secure,
-        samesite="lax",
+        secure=is_prod,
+        samesite="none" if is_prod else "lax",
         max_age=settings.session_ttl_seconds,
     )
 
 
 def clear_session_cookie(response: Response) -> None:
     """Remove the session cookie."""
-    response.delete_cookie(key="session_id")
+    is_prod = settings.environment == "production"
+    response.delete_cookie(
+        key="session_id",
+        secure=is_prod,
+        samesite="none" if is_prod else "lax",
+    )
 
 
 # --- FastAPI dependencies ---
