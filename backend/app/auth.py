@@ -6,7 +6,7 @@ from typing import Optional
 
 import bcrypt
 from jose import jwt
-from fastapi import Cookie, Depends, HTTPException, Response
+from fastapi import Cookie, Depends, Header, HTTPException, Response
 
 from app.config import settings
 from app.storage import redis_client
@@ -113,12 +113,22 @@ def clear_session_cookie(response: Response) -> None:
 
 # --- FastAPI dependencies ---
 
-def get_current_user(session_id: Optional[str] = Cookie(None)) -> dict:
-    """Dependency: extract and validate the current user from session cookie."""
-    if not session_id:
+def get_current_user(
+    session_id: Optional[str] = Cookie(None),
+    authorization: Optional[str] = Header(None),
+) -> dict:
+    """Dependency: extract and validate the current user from Authorization header or session cookie."""
+    # Prefer Authorization header (works on all browsers including mobile Safari)
+    token = None
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization[7:]
+    elif session_id:
+        token = session_id
+
+    if not token:
         raise HTTPException(status_code=401, detail="Not authenticated")
 
-    session = get_session(session_id)
+    session = get_session(token)
     if not session:
         raise HTTPException(status_code=401, detail="Session expired or invalid")
 
