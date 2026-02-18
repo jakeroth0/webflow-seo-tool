@@ -32,11 +32,14 @@ export function SettingsPage({ onBack }: { onBack: () => void }) {
     webflow_collection_id: '',
     openai_api_key: '',
   })
+  const [inviteCode, setInviteCode] = useState('')
+  const [inviteEnabled, setInviteEnabled] = useState(false)
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     loadKeys()
+    loadInviteCode()
   }, [])
 
   async function loadKeys() {
@@ -47,6 +50,29 @@ export function SettingsPage({ onBack }: { onBack: () => void }) {
       toast.error('Failed to load API key settings')
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function loadInviteCode() {
+    try {
+      const data = await api.get<{ code: string; enabled: boolean }>('/api/v1/admin/settings/invite-code')
+      setInviteCode(data.code)
+      setInviteEnabled(data.enabled)
+    } catch {
+      // Non-critical — just leave empty
+    }
+  }
+
+  async function handleSaveInviteCode() {
+    setSaving(true)
+    try {
+      const data = await api.put<{ code: string; enabled: boolean }>('/api/v1/admin/settings/invite-code', { code: inviteCode })
+      setInviteEnabled(data.enabled)
+      toast.success(data.enabled ? 'Invite code set — new users must enter it to register' : 'Invite code cleared — registration is open')
+    } catch {
+      toast.error('Failed to save invite code')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -173,6 +199,54 @@ export function SettingsPage({ onBack }: { onBack: () => void }) {
               <Button onClick={handleSave} disabled={saving}>
                 {saving ? 'Saving...' : 'Save Keys'}
               </Button>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-base">Invite Code</CardTitle>
+              <Badge variant={inviteEnabled ? 'default' : 'secondary'} className="text-[10px] uppercase">
+                {inviteEnabled ? 'Active' : 'Off'}
+              </Badge>
+            </div>
+            <CardDescription>
+              Set an invite code to control who can register.
+              Leave empty to allow open registration.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Input
+              type="text"
+              placeholder="e.g. my-secret-code"
+              value={inviteCode}
+              onChange={(e) => setInviteCode(e.target.value)}
+            />
+            <div className="flex gap-2">
+              <Button onClick={handleSaveInviteCode} disabled={saving}>
+                {saving ? 'Saving...' : 'Save'}
+              </Button>
+              {inviteEnabled && (
+                <Button
+                  variant="outline"
+                  onClick={async () => {
+                    setSaving(true)
+                    try {
+                      const data = await api.put<{ code: string; enabled: boolean }>('/api/v1/admin/settings/invite-code', { code: '' })
+                      setInviteCode('')
+                      setInviteEnabled(data.enabled)
+                      toast.success('Invite code cleared — registration is open')
+                    } catch {
+                      toast.error('Failed to clear invite code')
+                    } finally {
+                      setSaving(false)
+                    }
+                  }}
+                  disabled={saving}
+                >
+                  Clear
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>

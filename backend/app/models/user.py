@@ -13,6 +13,7 @@ class UserCreate(BaseModel):
     email: str = Field(..., min_length=3, max_length=255)
     password: str = Field(..., min_length=8, max_length=128)
     display_name: str = Field(..., min_length=1, max_length=100)
+    invite_code: Optional[str] = Field(None, description="Required if admin has set an invite code")
 
 
 class UserLogin(BaseModel):

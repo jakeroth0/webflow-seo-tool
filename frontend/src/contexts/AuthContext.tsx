@@ -20,7 +20,7 @@ interface AuthState {
 
 interface AuthContextValue extends AuthState {
   login: (email: string, password: string) => Promise<void>
-  register: (email: string, password: string, displayName: string) => Promise<void>
+  register: (email: string, password: string, displayName: string, inviteCode?: string) => Promise<void>
   logout: () => Promise<void>
 }
 
@@ -80,13 +80,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const register = useCallback(async (email: string, password: string, displayName: string) => {
+  const register = useCallback(async (email: string, password: string, displayName: string, inviteCode?: string) => {
     setError(null)
     try {
       const u = await api.post<User>('/api/v1/auth/register', {
         email,
         password,
         display_name: displayName,
+        ...(inviteCode ? { invite_code: inviteCode } : {}),
       })
       setUser(u)
     } catch (err) {

@@ -5,7 +5,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Response
 
 from app.models import UserCreate, UserLogin, UserResponse, UserRole
-from app.storage import users_db
+from app.storage import users_db, settings_db
 from app.auth import (
     hash_password,
     verify_password,
@@ -35,8 +35,15 @@ async def register(body: UserCreate, response: Response):
     if _find_user_by_email(body.email):
         raise HTTPException(status_code=409, detail="Email already registered")
 
-    # First user = admin
+    # First user = admin (skip invite code check for first user)
     all_users = users_db.list_all()
+
+    # Validate invite code (skip for first user — they become admin)
+    if len(all_users) > 0:
+        stored_code = settings_db.get("invite_code")
+        if stored_code and stored_code.get("code"):
+            if not body.invite_code or body.invite_code != stored_code["code"]:
+                raise HTTPException(status_code=403, detail="Invalid invite code")
     role = UserRole.ADMIN if len(all_users) == 0 else UserRole.USER
 
     user_id = f"user_{uuid.uuid4().hex[:12]}"
