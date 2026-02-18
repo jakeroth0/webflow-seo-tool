@@ -1,5 +1,7 @@
 from pydantic_settings import BaseSettings
+from pydantic import field_validator
 from typing import Optional
+import json
 
 
 class Settings(BaseSettings):
@@ -12,6 +14,16 @@ class Settings(BaseSettings):
 
     # CORS
     cors_origins: list[str] = ["http://localhost:3000"]
+
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, v: object) -> object:
+        if isinstance(v, str):
+            v = v.strip()
+            if not v:
+                return ["http://localhost:3000"]
+            return json.loads(v)
+        return v
 
     # External APIs
     webflow_api_token: Optional[str] = None
