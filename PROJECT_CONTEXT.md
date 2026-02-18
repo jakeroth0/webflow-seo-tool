@@ -73,12 +73,30 @@ Internal web app that:
   - Sidebar table: TanStack Table client-side pagination (20/page, Previous/Next, X–Y of Z)
   - Mobile responsive sidebar: slide-in drawer with backdrop overlay; hamburger/close toggle in header; auto-close on item select; desktop layout unchanged
   - Image opt-out fix: generate request passes specific opted-in `image_keys` to backend; Celery task filters to only those fields per item (previously all 4 image slots were always processed)
-- [ ] **Phase 5 M5.7: Deployment to Render.com** <-- NEXT
+- [x] **Phase 5 M5.7: Deployment to Render.com**
+  - render.yaml: 4 services (API web, Celery worker, Redis, frontend static site)
+  - Celery worker Start Command: `celery -A app.celery_app worker --loglevel=info --concurrency=2`
+  - CORS_ORIGINS and VITE_API_URL env vars for cross-origin setup
+  - SameSite=None cookies for cross-origin production environment
+- [x] **Phase 5 M5.8: Invite Code + Demo Access**
+  - Invite code gating: admin sets code via Settings UI, new users must enter it to register
+  - First user (admin) exempt from invite code requirement
+  - Relaxed endpoints: items/generate/apply/jobs open to any authenticated user (was admin-only)
+  - Admin endpoints: GET/PUT /api/v1/admin/settings/invite-code
+- [x] **Phase 5 M5.9: Mobile Safari Auth Fix**
+  - Safari ITP blocks cross-origin cookies — added dual auth: Authorization Bearer header + cookie fallback
+  - Login/register return session token in response body
+  - Frontend stores token in sessionStorage, sends via Authorization header on all requests
+  - Explicit CORS allow_headers (wildcard unreliable with credentials:true on mobile Safari)
+  - Network error handling in fetch wrapper (catches CORS blocks, surfaces as ApiError)
+- [x] **Phase 5 M5.10: Sync Success Notification**
+  - Toast notification (sonner) on successful Webflow sync
+  - Error toast with failure count on partial/full failure
 
 ## Architecture
 
 ### End-to-End Workflow
-1. User registers/logs in -- session cookie set (HttpOnly, Redis-backed)
+1. User registers/logs in -- session cookie + Bearer token returned (Redis-backed sessions)
 2. Frontend loads CMS items via `GET /api/v1/items` -- displays thumbnails + current alt text
 3. User selects projects in sidebar, then opts-in individual images
 4. User clicks "Generate Alt Text" -- `POST /api/v1/generate` dispatches Celery task
@@ -113,8 +131,8 @@ Internal web app that:
 | GET    | `/api/v1/admin/users`                  | Admin    | List all users                   |
 | POST   | `/api/v1/admin/users/invite`           | Admin    | Create user with role            |
 | PATCH  | `/api/v1/admin/users/{id}`             | Admin    | Update role/status               |
-| GET    | `/api/v1/admin/settings`               | Admin    | Get app settings                 |
-| PUT    | `/api/v1/admin/settings/notifications` | Admin    | Update notification config       |
+| GET    | `/api/v1/admin/settings/invite-code`   | Admin    | Get invite code status           |
+| PUT    | `/api/v1/admin/settings/invite-code`   | Admin    | Set/clear invite code            |
 | GET    | `/api/v1/admin/settings/api-keys`      | Admin    | Get masked API key status        |
 | PUT    | `/api/v1/admin/settings/api-keys`      | Admin    | Update stored API keys           |
 
@@ -172,7 +190,7 @@ backend/
 frontend/
   src/
     App.tsx              # Auth routing: login/register or AppLayout
-    api/client.ts        # Centralized fetch wrapper (credentials: include, 401 broadcast)
+    api/client.ts        # Centralized fetch wrapper (Bearer token + cookie, 401 broadcast, network error handling)
     types/index.ts       # Shared TS interfaces
     contexts/AuthContext.tsx  # Real auth: login, register, logout, session restore
     hooks/useItems.ts    # Items loading (auto-paginate all pages), project selection, image opt-in
@@ -183,7 +201,8 @@ frontend/
     index.css            # shadcn/ui oklch dark theme defaults
   Dockerfile             # Multi-stage: Node build -> Nginx serve
 
-docker-compose.yml       # 4 services: redis, api, celery, frontend
+docker-compose.yml       # 4 services: redis, api, celery, frontend (local dev)
+render.yaml              # Render.com deployment: API, worker, Redis, static frontend
 PROJECT_CONTEXT.md       # This file
 ```
 
@@ -191,7 +210,7 @@ PROJECT_CONTEXT.md       # This file
 - **Backend:** Python 3.13, FastAPI, Pydantic v2, Uvicorn
 - **AI:** OpenAI gpt-4o-mini (Vision) -- generates SEO alt text, max 125 chars
 - **External API:** Webflow CMS API v2 (httpx client, tenacity retries)
-- **Auth:** bcrypt password hashing + HMAC-signed session cookies (Redis-backed, HttpOnly)
+- **Auth:** bcrypt password hashing + HMAC-signed sessions (Redis-backed, dual: HttpOnly cookie + Bearer token)
 - **Encryption:** Fernet (AES-128-CBC + HMAC-SHA256) for API keys at rest
 - **Storage:** Azure Cosmos DB for NoSQL (serverless, containers: jobs, proposals, users, settings)
 - **Queue:** Celery 5.4 + Redis 7 (broker + result backend + sessions)
@@ -251,14 +270,17 @@ docker compose run --rm api python -m pytest app/tests/ -v
 - [x] OpenAI account with API key
 - [x] Webflow account with test site (217 CMS items, 4 images each)
 - [x] GitHub repo: https://github.com/jakeroth0/webflow-seo-tool
-- [x] Redis via Docker (Celery broker + session store)
+- [x] Redis via Docker locally / Render Redis in production (Celery broker + session store)
 - [x] Azure Cosmos DB for NoSQL (serverless, West US 2, resource group `webflow-seo-tool-rg`)
+- [x] Render.com: API (webflow-seo-api), Worker (webflow-seo-celery), Redis (webflow-seo-redis), Frontend (webflow-seo-frontend)
 
 ## Key Design Decisions
 - **Opt-in apply:** Users must explicitly select images and click apply -- no automatic CMS writes
 - **Two-level selection:** Sidebar selects projects (visibility), per-image checkboxes control inclusion
-- **HTTP-only session cookies:** XSS-immune, Redis-backed sessions with HMAC-signed IDs (not JWT)
+- **Dual auth (cookie + token):** HttpOnly session cookies for desktop, Bearer token in sessionStorage for mobile Safari (ITP blocks cross-origin cookies)
+- **Explicit CORS headers:** `allow_headers=["Content-Type", "Authorization", "Cookie"]` — wildcard unreliable with `credentials:true` on mobile Safari
 - **First user = admin:** Single-tenant model, first registered user gets admin role
+- **Invite code gating:** Admin sets invite code via Settings UI; second+ users must provide it to register
 - **Encrypted API keys:** Admin can store keys via UI (Fernet encrypted in settings_db), env vars as fallback
 - **Key retrieval priority:** Stored (encrypted) key > environment variable > None
 - **Mock fallbacks:** All external services (Webflow, OpenAI) have mock clients for dev/testing
