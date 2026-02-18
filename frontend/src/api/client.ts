@@ -57,12 +57,19 @@ async function request<T>(url: string, options: FetchOptions = {}): Promise<T> {
     body = JSON.stringify(json)
   }
 
-  const res = await fetch(`${BASE_URL}${url}`, {
-    ...rest,
-    headers,
-    body,
-    credentials: 'include',
-  })
+  let res: Response
+  try {
+    res = await fetch(`${BASE_URL}${url}`, {
+      ...rest,
+      headers,
+      body,
+      credentials: 'include',
+    })
+  } catch (networkErr) {
+    // Network error (CORS block, offline, etc.) — fetch never got a response
+    console.error(`[API] Network error on ${rest.method ?? 'GET'} ${url}:`, networkErr)
+    throw new ApiError(0, `Network error: ${networkErr instanceof Error ? networkErr.message : 'request failed'}`)
+  }
 
   if (!res.ok) {
     const text = await res.text().catch(() => res.statusText)
