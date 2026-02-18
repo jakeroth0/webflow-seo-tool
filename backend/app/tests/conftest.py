@@ -58,6 +58,7 @@ def mock_storage():
         patch("app.routers.jobs.jobs_db", mem_jobs),
         patch("app.routers.jobs.proposals_db", mem_proposals),
         patch("app.routers.auth.users_db", mem_users),
+        patch("app.routers.auth.settings_db", mem_settings),
         patch("app.routers.admin.users_db", mem_users),
         patch("app.routers.admin.settings_db", mem_settings),
         patch("app.tasks.jobs_db", mem_jobs),

@@ -28,7 +28,7 @@ def _find_user_by_email(email: str) -> dict | None:
     return None
 
 
-@router.post("/register", response_model=UserResponse)
+@router.post("/register")
 async def register(body: UserCreate, response: Response):
     """Register a new user. First user becomes admin."""
     # Check for duplicate email
@@ -60,7 +60,7 @@ async def register(body: UserCreate, response: Response):
     }
     users_db.set(user_id, user_data)
 
-    # Create session + set cookie
+    # Create session + set cookie (cookie for desktop, token for mobile)
     signed_id = create_session(user_id, role.value, body.email)
     set_session_cookie(response, signed_id)
 
@@ -69,17 +69,18 @@ async def register(body: UserCreate, response: Response):
         extra={"user_id": user_id, "email": body.email, "role": role.value},
     )
 
-    return UserResponse(
-        user_id=user_id,
-        email=body.email,
-        display_name=body.display_name,
-        role=role,
-        is_active=True,
-        created_at=now,
-    )
+    return {
+        "user_id": user_id,
+        "email": body.email,
+        "display_name": body.display_name,
+        "role": role.value,
+        "is_active": True,
+        "created_at": now,
+        "token": signed_id,
+    }
 
 
-@router.post("/login", response_model=UserResponse)
+@router.post("/login")
 async def login(body: UserLogin, response: Response):
     """Login with email and password."""
     user = _find_user_by_email(body.email)
@@ -92,20 +93,21 @@ async def login(body: UserLogin, response: Response):
     if not user.get("is_active", True):
         raise HTTPException(status_code=403, detail="Account is deactivated")
 
-    # Create session + set cookie
+    # Create session + set cookie (cookie for desktop, token for mobile)
     signed_id = create_session(user["user_id"], user["role"], user["email"])
     set_session_cookie(response, signed_id)
 
     logger.info("User logged in", extra={"user_id": user["user_id"], "email": user["email"]})
 
-    return UserResponse(
-        user_id=user["user_id"],
-        email=user["email"],
-        display_name=user["display_name"],
-        role=user["role"],
-        is_active=user["is_active"],
-        created_at=user["created_at"],
-    )
+    return {
+        "user_id": user["user_id"],
+        "email": user["email"],
+        "display_name": user["display_name"],
+        "role": user["role"],
+        "is_active": user["is_active"],
+        "created_at": user["created_at"],
+        "token": signed_id,
+    }
 
 
 @router.post("/logout")

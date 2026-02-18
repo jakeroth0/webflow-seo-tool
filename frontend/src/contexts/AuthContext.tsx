@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
 import type { HealthStatus } from '../types'
-import { api, ApiError } from '../api/client'
+import { api, ApiError, setToken, clearToken } from '../api/client'
 
 interface User {
   user_id: string
@@ -67,8 +67,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async (email: string, password: string) => {
     setError(null)
     try {
-      const u = await api.post<User>('/api/v1/auth/login', { email, password })
-      setUser(u)
+      const resp = await api.post<User & { token?: string }>('/api/v1/auth/login', { email, password })
+      if (resp.token) setToken(resp.token)
+      setUser(resp)
     } catch (err) {
       if (err instanceof ApiError) {
         const detail = (() => {
@@ -83,13 +84,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = useCallback(async (email: string, password: string, displayName: string, inviteCode?: string) => {
     setError(null)
     try {
-      const u = await api.post<User>('/api/v1/auth/register', {
+      const resp = await api.post<User & { token?: string }>('/api/v1/auth/register', {
         email,
         password,
         display_name: displayName,
         ...(inviteCode ? { invite_code: inviteCode } : {}),
       })
-      setUser(u)
+      if (resp.token) setToken(resp.token)
+      setUser(resp)
     } catch (err) {
       if (err instanceof ApiError) {
         const detail = (() => {
@@ -107,6 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // Ignore — clear local state regardless
     }
+    clearToken()
     setUser(null)
   }, [])
 
