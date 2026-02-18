@@ -8,8 +8,8 @@ logger = logging.getLogger(__name__)
 class AltTextGenerator:
     """OpenAI client for generating SEO-friendly alt text using GPT-4 Vision."""
 
-    def __init__(self, api_key: str):
-        self.client = AsyncOpenAI(api_key=api_key)
+    def __init__(self, api_key: str, timeout: float = 60.0):
+        self.client = AsyncOpenAI(api_key=api_key, timeout=timeout)
         self.model = "gpt-4o-mini"  # Fast and cost-effective vision model
 
     async def generate_alt_text(

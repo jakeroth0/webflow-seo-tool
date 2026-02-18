@@ -2,6 +2,7 @@ import httpx
 import logging
 from typing import Optional
 from tenacity import (
+    before_sleep_log,
     retry,
     stop_after_attempt,
     wait_exponential,
@@ -38,6 +39,7 @@ class WebflowClient:
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=2, max=60),
         retry=retry_if_exception_type(RateLimitError),
+        before_sleep=before_sleep_log(logger, logging.WARNING),
         reraise=True,
     )
     async def get_collection_items(
@@ -76,6 +78,7 @@ class WebflowClient:
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=2, max=60),
         retry=retry_if_exception_type(RateLimitError),
+        before_sleep=before_sleep_log(logger, logging.WARNING),
         reraise=True,
     )
     async def update_item(
@@ -127,6 +130,52 @@ class WebflowClient:
         except httpx.RequestError as e:
             logger.error(f"Request error updating item: {str(e)}")
             raise
+
+    async def get_all_collection_items(
+        self,
+        collection_id: str,
+        target_ids: list[str] | None = None,
+    ) -> list[dict]:
+        """
+        Fetch all items from a collection, paginating automatically.
+
+        If target_ids is provided, stops early once all targets are found.
+        """
+        all_items = []
+        offset = 0
+        limit = 100
+        target_set = set(target_ids) if target_ids else None
+        found_ids: set[str] = set()
+
+        while True:
+            logger.info(
+                "Fetching Webflow items page",
+                extra={"collection_id": collection_id, "offset": offset, "limit": limit},
+            )
+            result = await self.get_collection_items(
+                collection_id=collection_id,
+                limit=limit,
+                offset=offset,
+            )
+            items = result.get("items", [])
+            all_items.extend(items)
+
+            if target_set:
+                found_ids.update(item["id"] for item in items if item["id"] in target_set)
+                if found_ids >= target_set:
+                    logger.info("All target items found, stopping pagination early")
+                    break
+
+            total = result.get("pagination", {}).get("total") or result.get("total", 0)
+            offset += len(items)
+            if offset >= total or len(items) < limit:
+                break
+
+        logger.info(
+            "Fetched all Webflow items",
+            extra={"total_fetched": len(all_items), "pages": (offset // limit) + 1},
+        )
+        return all_items
 
     async def close(self):
         """Close the HTTP client."""
@@ -186,6 +235,15 @@ class MockWebflowClient(WebflowClient):
             "id": item_id,
             "fieldData": field_data,
         }
+
+    async def get_all_collection_items(
+        self,
+        collection_id: str,
+        target_ids: list[str] | None = None,
+    ) -> list[dict]:
+        """Mock paginated fetch - returns all mock items."""
+        result = await self.get_collection_items(collection_id=collection_id)
+        return result.get("items", [])
 
     async def close(self):
         """Mock close - does nothing."""

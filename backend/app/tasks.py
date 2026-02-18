@@ -44,26 +44,49 @@ async def process_job_async(job_id: str, collection_id: str, item_ids: list[str]
         job_start = time.monotonic()
         logger.info(
             "Job started",
-            extra={"job_id": job_id, "item_count": len(item_ids)},
+            extra={
+                "job_id": job_id,
+                "item_count": len(item_ids),
+                "image_keys_count": len(image_keys) if image_keys else "all",
+                "collection_id": collection_id,
+            },
         )
 
         webflow_client = get_webflow_client()
         ai_generator = get_alt_text_generator()
+        logger.info(
+            "Clients initialized",
+            extra={
+                "job_id": job_id,
+                "webflow_client": type(webflow_client).__name__,
+                "ai_generator": type(ai_generator).__name__,
+                "ai_model": ai_generator.model,
+            },
+        )
         proposals = []
 
-        # Fetch all items from Webflow
-        result = await webflow_client.get_collection_items(
+        # Fetch all items from Webflow (paginated)
+        all_items = await webflow_client.get_all_collection_items(
             collection_id=collection_id,
-            limit=100,  # Get enough to cover our item_ids
+            target_ids=item_ids,
         )
 
         # Build a lookup map
-        items_map = {
-            item["id"]: item for item in result.get("items", [])
-        }
+        items_map = {item["id"]: item for item in all_items}
+        logger.info(
+            "Webflow items fetched",
+            extra={
+                "job_id": job_id,
+                "total_fetched": len(all_items),
+                "requested": len(item_ids),
+                "matched": len(set(item_ids) & set(items_map.keys())),
+            },
+        )
 
         # Process each item
         total = len(item_ids)
+        images_processed = 0
+        images_skipped = 0
         for idx, item_id in enumerate(item_ids):
             try:
                 raw_item = items_map.get(item_id)
@@ -91,6 +114,7 @@ async def process_job_async(job_id: str, collection_id: str, item_ids: list[str]
 
                     # Skip if not in the opted-in set
                     if allowed_fields is not None and image_field not in allowed_fields:
+                        images_skipped += 1
                         continue
 
                     image_data = field_data.get(image_field)
@@ -100,6 +124,17 @@ async def process_job_async(job_id: str, collection_id: str, item_ids: list[str]
                     if image_data and isinstance(image_data, dict):
                         image_url = image_data.get("url")
                         if image_url:
+                            img_start = time.monotonic()
+                            logger.info(
+                                "Generating alt text for image",
+                                extra={
+                                    "job_id": job_id,
+                                    "item_id": item_id,
+                                    "field": image_field,
+                                    "project": project_name,
+                                    "image_url": image_url[:80],
+                                },
+                            )
                             # Generate alt text using AI
                             generated_alt = await ai_generator.generate_alt_text(
                                 image_url=image_url,
@@ -107,6 +142,19 @@ async def process_job_async(job_id: str, collection_id: str, item_ids: list[str]
                                     "name": project_name,
                                     "existing_alt": existing_alt,
                                     "field_name": image_field,
+                                },
+                            )
+                            img_ms = round((time.monotonic() - img_start) * 1000, 2)
+                            images_processed += 1
+                            logger.info(
+                                "Alt text generated",
+                                extra={
+                                    "job_id": job_id,
+                                    "item_id": item_id,
+                                    "field": image_field,
+                                    "duration_ms": img_ms,
+                                    "alt_text_length": len(generated_alt),
+                                    "images_done": images_processed,
                                 },
                             )
 
@@ -150,7 +198,13 @@ async def process_job_async(job_id: str, collection_id: str, item_ids: list[str]
         duration_ms = round((time.monotonic() - job_start) * 1000, 2)
         logger.info(
             "Job completed",
-            extra={"job_id": job_id, "proposal_count": len(proposals), "duration_ms": duration_ms},
+            extra={
+                "job_id": job_id,
+                "proposal_count": len(proposals),
+                "images_processed": images_processed,
+                "images_skipped": images_skipped,
+                "duration_ms": duration_ms,
+            },
         )
 
         await webflow_client.close()
