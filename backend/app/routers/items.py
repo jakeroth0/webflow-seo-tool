@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Optional
 from app.models import CMSItemResponse, CMSItem, ImageWithAltText
 from app.services.webflow_client import WebflowClient, MockWebflowClient
-from app.auth import get_current_user
+from app.auth import require_admin
 from app.key_manager import get_webflow_api_token, get_webflow_collection_id
 import logging
 
@@ -27,7 +27,7 @@ async def list_items(
     limit: int = Query(50, ge=1, le=100, description="Number of items to return"),
     offset: int = Query(0, ge=0, description="Pagination offset"),
     client: WebflowClient = Depends(get_webflow_client),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_admin),
 ):
     """
     List CMS items from a Webflow collection.
